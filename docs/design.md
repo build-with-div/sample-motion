@@ -542,6 +542,16 @@ the harness's exact RGBA comparison:
     WAAPI animations is the first measurement to make. This is plan
     question Q13 and milestone M2. The decision is to measure before
     choosing.
+  - **Measured in M2** ([q13-chromium-capture.md](q13-chromium-capture.md)),
+    10 fresh browser runs per row:
+    - Virtual time is not byte-stable: 2–8 distinct captures per t.
+    - Begin-frame control is not available in the pinned binary.
+    - Paused seeking of WAAPI and CSS animations is byte-stable: 1 hash
+      per t, equal to the reference.
+    - A rAF pump driven by the oracle is byte-stable for rAF-driven code
+      in the same way.
+    - Package comparisons therefore seek the animations and pump rAF at
+      each frame time.
   - Each frame k is captured.
 - **Div side:**
   - The Rust port of the package runs the same scenario (a shared JSON
