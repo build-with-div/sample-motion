@@ -1,7 +1,11 @@
 # RFC draft: the web animation platform in Div
 
 - Status: draft from the sample-motion investigation, for the Div tracks to
-  adopt, change or reject. Nothing here is scheduled.
+  adopt, change or reject. Since 13 November 2026, Div's Tier 0 schedules
+  R1 (F4), R4/R5 (F15's damage and cheap start), S1/S3/S4 (F7–F9) and O1
+  (part of F11). The user's platform decisions of the same day
+  (`decisions-2026-11-13.md`) resolve this draft's open questions and
+  override it where they differ. The affected sections are marked.
 - Pinned Div: `565db46a`. Evidence: [design.md](design.md), which holds the
   package → feature map, the measurements and the probes.
 - Principle: Div implements the **web platform features** that the motion
@@ -23,7 +27,7 @@
 | F4 | `requestAnimationFrame` | framework | S–M | Motion, GSAP, react-spring, lottie |
 | F3 | Web Animations API surface | framework + engine | M | Motion, AutoAnimate; base of F1, F2 |
 | F5 | Frame production: vsync pacing, frame timestamps, timers, occlusion | framework (platform) | M | all |
-| F15 | Compositor-driven frames (staged) | engine + compositor + framework | S–M → L | smoothness for all |
+| F15 | Compositor-driven frames: cheap start and targeted sampling, then the single partial-redraw design (damage, then layers) | engine + compositor + framework | S–M → L | smoothness for all |
 | F1 | CSS Transitions | engine | L | shadcn/Radix, any CSS styling |
 | F2 | CSS Animations (`@keyframes`) | engine | L | tailwindcss-animate, Radix, View Transitions |
 | F7 | Custom properties | engine | L | tailwindcss-animate, Radix, react-spring |
@@ -35,7 +39,7 @@
 | F14 | View Transitions | engine + compositor | L | page/state transitions |
 | F16 | SVG painting and geometry | engine (paint) | L | lottie, GSAP DrawSVG/MorphSVG |
 | F17 | Canvas 2D | engine + framework | L | lottie canvas renderer |
-| F18 | Retaining removed children (React's contract) | framework | S–M | `AnimatePresence`, Radix `Presence` |
+| F18 | Retaining removed children (a non-web contract, accepted by Q15) | framework | S–M | `AnimatePresence`, Radix `Presence` |
 | F12 | Pointer Events | framework | (interactions sample) | gestures |
 
 ## F4. `requestAnimationFrame`
@@ -55,7 +59,8 @@ document.cancel_animation_frame(handle);
   current time for that frame.
 - A pending callback makes the window want a frame, as a running animation
   does. Hidden or occluded windows stop calling them (F5).
-- Available on every window, including `AppSpec` windows. Headless
+- Per document, with a typed handle, and available on every window,
+  including `AppSpec` windows (decision Q4). Headless
   `render_at(t)` runs pending callbacks with `now = t`, so rAF-driven ports
   are as deterministic as engine animations.
 - Measured by: WPT `html/webappapis/update-rendering` (ordering subset)
@@ -93,8 +98,11 @@ let running = element.get_animations()?;   // and document.get_animations()
   and `ViewTimeline` objects over the engine's existing timelines (F13).
 - **Keyword easings:** `ease`, `ease-in`, `ease-out`, `ease-in-out`,
   `step-start`, `step-end` as constants equal to their CSS definitions.
-- The existing `Element::animate(property, Keyframes, options) ->
-  AnimationId` stays as a thin wrapper or is retired.
+- **One surface (decision Q12).** This is Div's only animation API.
+  Animations created by CSS transitions and `@keyframes` (F1, F2) are
+  `Animation`s too (`CSSTransition`, `CSSAnimation`) and appear in
+  `get_animations()`. The existing `Element::animate(property, Keyframes,
+  options) -> AnimationId` is retired after its users migrate.
 - Measured by: WPT `web-animations` (151 files, 133 testharness), via the
   script translation in design §Fidelity.
 
@@ -121,25 +129,32 @@ The numbers to beat are in design §Measurements:
 - Style sampling grows ×17 from 100 to 1000 animated elements.
 - With 1000 animations running, starting one more takes 16 ms.
 
-Staged so each step pays off alone:
+**Decision Q2 changes this section.** Partial redraw is designed once, by
+the engine, in its own RFC (Tier 0 item 0.7): damage regions first, then
+layers. Animation layers, View Transitions snapshots (F14) and the canvas
+samples' canvas slots are all built on that one design. Steps 2–4 below
+are therefore **motion's requirements on that design**, not a separate
+proposal. Step 1 is the separate engine item R5, scheduled with 0.7.
 
-1. **O(1) animation start** and **targeted style sampling**: apply sampled
-   values to the animated elements' computed style without re-cascading
-   every root. (engine, S–M)
-2. **Damage**: union of old and new visual rects instead of full-viewport
-   damage (`div-engine/src/lib.rs:2686-2691`); partial raster; present with
-   damage (`present_with_damage`, `eglSwapBuffersWithDamage`). (engine +
-   framework, M)
-3. **Layers**: promote elements with running transform/opacity/filter
-   animations or `will-change` and cache their raster. A frame then
-   re-composites with new matrices and alpha. Use Chromium's promotion and
-   raster-scale rules: design §Fidelity shows animated fractional scales
-   already differ at the edges. The existing `RetainedSceneSnapshot` and
-   the unused `SceneMailbox` were laid out for this. (engine + compositor,
-   L)
+1. **O(1) animation start** and **targeted style sampling** (R5): apply
+   sampled values to the animated elements' computed style without
+   re-cascading every root. (engine, S–M)
+2. **Damage** (the design's first stage). Use the union of old and new
+   visual rects instead of full-viewport damage
+   (`div-engine/src/lib.rs:2686-2691`), raster only that region, and
+   present with damage (`present_with_damage`,
+   `eglSwapBuffersWithDamage`). Motion's requirement: one animated square
+   costs raster in proportion to its area, not the viewport's.
+3. **Layers** (the design's second stage). Promote elements with running
+   transform/opacity/filter animations or `will-change` and cache their
+   raster. A frame then re-composites with new matrices and alpha. Motion's
+   requirement: Chromium's promotion and raster-scale rules, because design
+   §Fidelity shows that animated fractional scales already differ at the
+   edges. The existing `RetainedSceneSnapshot` and the unused
+   `SceneMailbox` were laid out for this.
 4. **Off-thread curves** for promoted layers, so a busy UI thread does not
-   stall them. This is Div's existing threading-model release blocker.
-   Measured today: a 50 ms block produced a 65 ms frame. (L)
+   stall them. This is Div's existing threading-model release blocker
+   (plan R6). Measured today: a 50 ms block produced a 65 ms frame.
 
 ## F1, F2. CSS Transitions and CSS Animations
 
@@ -173,10 +188,14 @@ transitions and animations in the cascade):
 
 ## F7, F8, F9. Custom properties, selectors, media queries
 
-These are already on Div's alpha path:
+These are scheduled in Div's Tier 0 (S1, S3/S4):
 - F7, custom properties: `var()` inside `@keyframes`, `@property`,
   `setProperty('--x')`. tailwindcss-animate's keyframes are written
-  entirely in `--tw-enter-*` variables.
+  entirely in `--tw-enter-*` variables. Per decision Q3, runtime
+  custom-property writes are supported, and third-party sheets such as
+  tw-animate-css go through a browser-compatible ingestion mode that drops
+  what Chromium drops and reports it. Compile-time strict checking stays
+  for code written for Div.
 - F8, selectors: A1.
 - F9, media queries: `prefers-reduced-motion` plus `matchMedia` with change
   events.
@@ -211,7 +230,8 @@ them as CSS (`animation-timeline: scroll()/view()`, `scroll-timeline-*`,
 `startViewTransition(callback)` captures old snapshots, runs the update, and
 builds the `::view-transition` pseudo-element tree. Then the CSS animations
 run on it (F2), and `view-transition-name` and `view-transition-class` apply.
-It needs snapshot layers (F15 step 3). Measured by WPT
+It needs snapshot layers from the single partial-redraw design (F15,
+decision Q2). Measured by WPT
 `css/css-view-transitions` (445 files, 306 reftests).
 
 ## F16, F17. SVG and Canvas 2D
@@ -219,7 +239,9 @@ It needs snapshot layers (F15 step 3). Measured by WPT
 lottie-web renders through SVG (paths with strokes, dashes, masks, clip
 paths, gradients, group transforms) or Canvas 2D. Both are large, and are
 shared with the charts and canvas samples. This RFC only records that
-motion needs them. Lottie also needs `getTotalLength`/`getPointAtLength`
+motion needs them. Per decision Q9, inline SVG (V1) starts right after the
+engine's Tier 0 items; Canvas 2D is a new engine-owned `div-canvas` crate
+(Q10). Lottie also needs `getTotalLength`/`getPointAtLength`
 and `pathLength`, as GSAP DrawSVG and Motion's path drawing do.
 
 ## F18. Retaining removed children
@@ -230,7 +252,8 @@ removed, until the exit animation's `finished` or `animationend`. divui's
 `Show`/`For` unmount at once. First verify whether a component can do this
 through `DynChild`. If it cannot, add a renderer contract for retained
 keyed children. This is not a web feature; it is the React-equivalent
-contract the ports need. (S–M)
+contract the ports need. Decision Q15 accepts it as framework work outside
+the web-feature rule. It is not scheduled yet. (S–M)
 
 ## Fidelity
 
@@ -256,11 +279,17 @@ These are the packages' logic and belong in their ports.
 
 ## Open questions
 
-1. Is there one F3 API with the CSS-created animations visible in
-   `get_animations()` (as on the web), and does the existing
-   `Element::animate` stay?
-2. Which Chromium frame driver (BeginFrame control or virtual time) gives
-   byte-stable captures for compositor-driven animations, for package-level
-   comparisons?
+Resolved on 13 November 2026 by the user's platform decisions:
+
+1. ~~Is there one F3 API with the CSS-created animations visible in
+   `get_animations()`, and does `Element::animate` stay?~~ One surface;
+   CSS-created animations appear in `get_animations()`. `Element::animate`
+   is retired after migration (Q12).
+2. ~~Which Chromium frame driver gives byte-stable captures?~~ Measure
+   byte stability across runs first, then choose; sample-motion owns the
+   measurement (Q13, milestone M2).
+
+Still open, for the framework track:
+
 3. Does F18 need a renderer change, or can `DynChild` already retain
-   children?
+   children? Q15 accepts the contract; how to build it is open.

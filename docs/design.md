@@ -12,7 +12,8 @@ that will replace it, and none is proposed as the solution.
 
 Phase 1 (this document) names the packages, maps them to platform features,
 and records what Div has, what is missing, who owns it and how big it is.
-Phase 2 ports the packages, and starts only on the go-ahead.
+Phase 2 ports the packages. It started on 13 November 2026; its milestones
+are [below](#phase-2-porting-the-packages).
 
 Everything below was checked against Div **`565db46a`** (build-with-div/div
 `main`, 13 November 2026). The checks were made by reading the source and
@@ -112,6 +113,38 @@ div-engine), **framework** (divui, div-platform, div-macros), **components**
   already the alpha plan's A1 path.
 - **F15** decides whether any of it is smooth.
 - **F14, F16 and F17** are large and can follow.
+
+**Platform decisions accepted on 13 November 2026.** The user accepted
+the platform plan's design decisions (`decisions-2026-11-13.md`, resolving
+plan questions Q1–Q16). The ones that change this design:
+
+- **One rendering design (Q2).** F15's damage and layers are not a
+  motion-only design. The engine designs partial redraw once, in an RFC:
+  damage regions first, then layers. It is Tier 0 item 0.7, together with
+  R5 (targeted sampling, O(1) start). Animation layers (including the
+  raster scale behind the fractional-`scale()` difference), off-thread
+  curves and the View Transitions snapshots of F14 are built on top of it,
+  as are the canvas samples' canvas slots. Motion contributes requirements
+  and measurements, not a second design.
+- **One Web Animations surface (Q12).** F3 is the single animation API.
+  Animations created by CSS (F1, F2) appear in `getAnimations()`. The
+  current single-property `Element::animate → AnimationId` is retired once
+  its users migrate. This repository's A3 scaffolds are among those users
+  and migrate when the surface lands.
+- **Runtime CSS (Q3).** Compile-time strict checking stays for code
+  written for Div. Third-party sheets, such as tw-animate-css, go through
+  a browser-compatible ingestion mode that drops what Chromium drops and
+  reports it. Runtime custom-property writes (`setProperty('--x')`, F7)
+  are supported, which react-spring and Radix's accordion height need.
+- **SVG earlier (Q9).** Inline SVG (F16, plan V1) starts right after the
+  engine's Tier 0 items, which brings lottie-web's SVG renderer and GSAP
+  DrawSVG closer.
+- **Retained children (Q15).** F18 is accepted as framework work outside
+  the web-feature rule, as a non-web contract that `AnimatePresence`
+  needs. It is not scheduled yet.
+- **Deterministic capture (Q13).** This repository owns the measurement:
+  Chromium's byte stability across runs, measured before choosing between
+  begin-frame control and virtual time (milestone M2).
 
 ## Probes
 
@@ -506,7 +539,9 @@ the harness's exact RGBA comparison:
     `HeadlessExperimental.beginFrame` at fixed frame times is one option;
     CDP virtual time (`Emulation.setVirtualTimePolicy`) is the other.
     Which of the two gives byte-stable captures for compositor-driven
-    WAAPI animations is the first measurement to make.
+    WAAPI animations is the first measurement to make. This is plan
+    question Q13 and milestone M2. The decision is to measure before
+    choosing.
   - Each frame k is captured.
 - **Div side:**
   - The Rust port of the package runs the same scenario (a shared JSON
@@ -522,28 +557,51 @@ the harness's exact RGBA comparison:
   features exist. Until then, the same scenario compares only the parts
   that run.
 
-## Phase 2: porting the packages (on go-ahead)
+## Phase 2: porting the packages
 
-Ports live in this repository as Rust crates that keep each package's
-semantics and formulas, built only on Div's public platform surface. Order
-follows platform readiness:
+Started 13 November 2026, after the Tier 0 platform work was scheduled in
+Div (the consolidated platform plan, §2). Phase 2 pins Div `92ea25a0`.
+Ports live in this repository and keep each package's semantics and
+formulas. They are built only on Div's public platform surface.
 
-1. **Motion's `animate()` core** (keyframes, spring → `linear()` export,
-   sequencing), on F3 and F4. Scaffolding until they land: the
-   single-property `Element::animate` with `AnimationId` controls stands in
-   for F3. `Presented` plus a keep-alive animation stands in for F4.
-2. **react-spring core** (spring integration, interruption with velocity),
-   on F4.
-3. **AutoAnimate**, on F3, F10, F11 and F18. A scaffold stands in for the
-   MutationObserver until F11.
-4. **GSAP core timeline**, on F4.
-5. **tailwindcss-animate and Radix `Presence`**, on F2, F7, F8, F9 and F18.
-   This port is blocked on the A1 stylesheet work. Until then, only the
-   keyframes are exercised, through F3.
-6. **lottie-web**, on F16 and F17. Blocked: coordinate with the charts and
-   canvas samples.
+What Div scheduled that motion depends on:
 
-Each scaffold carries `// div-gap: F<n>`, is listed in
+- **R1** `requestAnimationFrame` with **T1** frame advance (replaces F4).
+- **R4** damage and partial raster, with **R5** targeted sampling and
+  O(1) animation start (F15 steps 1–2).
+- **S1** selectors, and **S3/S4** custom properties and media (F7, F8, F9).
+- **O1** `ResizeObserver` and **I1** Pointer Events (part of F11, F12).
+- **T3** WPT script translation, which is what lets the testharness-based
+  animation suites be measured.
+
+`@keyframes` and transitions from rules (**A2**, **A1**), the Web
+Animations API surface (**A3**), MutationObserver and IntersectionObserver
+(**O3**, **O2**), and frame pacing (**R2**) are Tier 1 and not scheduled.
+SVG (**V1**) and Canvas 2D (**C2**) are later still. Ports therefore start
+with what runs on Div's existing animation engine, and the rest sits behind
+labelled scaffolds.
+
+Milestones. Each is one PR, merged before the next starts.
+
+| M | PR | Content | Platform features used | Scaffolds (`div-gap`) | Measured by |
+| --- | --- | --- | --- | --- | --- |
+| M1 | repin and plan | Pin Div `92ea25a0`, rerun the probes, write these milestones and the gap-ID mapping | — | — | probes, CI |
+| M2 | deterministic Chromium capture (plan Q13) | Measure the byte stability of three ways of sampling an animation in pinned Chromium: negative delay with a paused animation, virtual time, and `--enable-begin-frame-control` with `HeadlessExperimental.beginFrame`. Cover a CSS animation and a rAF-driven JS animation. | — | — | repeated captures, distinct-hash counts |
+| M3 | Motion `animate()` core | Keyframe resolution, the easing set, the spring and inertia generators with their `linear()` export, `stagger`, and sequences. Pinned Motion version. | Engine keyframe effects, `Easing::LinearStops` (`linear()`), composition, playback controls | A3 Web Animations API (one `Element::animate` per property and controls by id stand in for the `Animation` handle and `finished`; migrates when the single surface lands, per Q12) | spring curve values against Motion's own output; sampled frames against Motion in Chromium (M2) |
+| M4 | react-spring core | The spring integrator, interruption with velocity, and chained springs | Inline style writes, `bounding_rect` | R1 requestAnimationFrame (`PlatformEvent::Presented` plus a keep-alive animation on the desktop; the test drives frames on the headless clock) | per-frame values and sampled frames against react-spring in Chromium |
+| M5 | GSAP core tween and timeline | Tweens, the timeline, eases and stagger. Before porting, the GSAP licence terms are checked and recorded. | Inline style writes | R1 requestAnimationFrame | per-frame values and sampled frames against GSAP in Chromium |
+| M6 | AutoAnimate | FLIP enter, exit and move for list children | `bounding_rect` after transforms, engine keyframe effects | O3 MutationObserver; A7 retained removed children; A3 `finished` | sampled frames of add, remove and reorder against AutoAnimate in Chromium |
+| M7 | tailwindcss-animate keyframes | The `enter`/`exit` keyframes with their default values, and reduced motion | Engine keyframe effects; `set_prefers_reduced_motion` | A2 `@keyframes`; S3 custom properties in keyframes; S1 `data-[state]` selectors; S4 `prefers-reduced-motion` media | sampled frames against the tw-animate-css stylesheet in Chromium |
+| M8 | Tier 0 remeasure | After R1, R4 and R5 land: delete the R1 scaffolds, rerun `measure_frame_cost`, `start_cost_by_animation_count` and `frame_pacing`, and update the gap list | R1, R4, R5 | — | the same commands as in Phase 1 |
+
+Blocked and not scheduled: **lottie-web** (V1 SVG, which starts right
+after the engine's Tier 0 per Q9, and C2 Canvas 2D), Motion's
+`animateView` (A6 View Transitions), Motion's `scroll()` (A5 scroll-driven
+syntax) and Radix `Presence` (A2 events with `animationName`, and A7,
+which Q15 accepted as framework work).
+
+Each scaffold carries `// div-gap: <plan ID> <web feature>`. It is listed in
 [framework-gaps.md](framework-gaps.md) with the feature that replaces it,
-and is deleted when Div ships that feature. Each port gets the
-package-level fidelity comparison above.
+and it is deleted when Div ships that feature. Each port gets the
+package-level fidelity comparison above. Results are reported as measured,
+with the command and the conditions.
