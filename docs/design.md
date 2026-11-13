@@ -12,7 +12,8 @@ that will replace it, and none is proposed as the solution.
 
 Phase 1 (this document) names the packages, maps them to platform features,
 and records what Div has, what is missing, who owns it and how big it is.
-Phase 2 ports the packages, and starts only on the go-ahead.
+Phase 2 ports the packages. It started on 13 November 2026; its milestones
+are [below](#phase-2-porting-the-packages).
 
 Everything below was checked against Div **`565db46a`** (build-with-div/div
 `main`, 13 November 2026). The checks were made by reading the source and
@@ -522,28 +523,49 @@ the harness's exact RGBA comparison:
   features exist. Until then, the same scenario compares only the parts
   that run.
 
-## Phase 2: porting the packages (on go-ahead)
+## Phase 2: porting the packages
 
-Ports live in this repository as Rust crates that keep each package's
-semantics and formulas, built only on Div's public platform surface. Order
-follows platform readiness:
+Started 13 November 2026, after the Tier 0 platform work was scheduled in
+Div (the consolidated platform plan, §2). Phase 2 pins Div `92ea25a0`.
+Ports live in this repository and keep each package's semantics and
+formulas. They are built only on Div's public platform surface.
 
-1. **Motion's `animate()` core** (keyframes, spring → `linear()` export,
-   sequencing), on F3 and F4. Scaffolding until they land: the
-   single-property `Element::animate` with `AnimationId` controls stands in
-   for F3. `Presented` plus a keep-alive animation stands in for F4.
-2. **react-spring core** (spring integration, interruption with velocity),
-   on F4.
-3. **AutoAnimate**, on F3, F10, F11 and F18. A scaffold stands in for the
-   MutationObserver until F11.
-4. **GSAP core timeline**, on F4.
-5. **tailwindcss-animate and Radix `Presence`**, on F2, F7, F8, F9 and F18.
-   This port is blocked on the A1 stylesheet work. Until then, only the
-   keyframes are exercised, through F3.
-6. **lottie-web**, on F16 and F17. Blocked: coordinate with the charts and
-   canvas samples.
+What Div scheduled that motion depends on:
 
-Each scaffold carries `// div-gap: F<n>`, is listed in
+- **R1** `requestAnimationFrame` with **T1** frame advance (replaces F4).
+- **R4** damage and partial raster, with **R5** targeted sampling and
+  O(1) animation start (F15 steps 1–2).
+- **S1** selectors, and **S3/S4** custom properties and media (F7, F8, F9).
+- **O1** `ResizeObserver` and **I1** Pointer Events (part of F11, F12).
+- **T3** WPT script translation, which is what lets the testharness-based
+  animation suites be measured.
+
+`@keyframes` and transitions from rules (**A2**, **A1**), the Web
+Animations API surface (**A3**), MutationObserver and IntersectionObserver
+(**O3**, **O2**), and frame pacing (**R2**) are Tier 1 and not scheduled.
+SVG (**V1**) and Canvas 2D (**C2**) are later still. Ports therefore start
+with what runs on Div's existing animation engine, and the rest sits behind
+labelled scaffolds.
+
+Milestones. Each is one PR, merged before the next starts.
+
+| M | PR | Content | Platform features used | Scaffolds (`div-gap`) | Measured by |
+| --- | --- | --- | --- | --- | --- |
+| M1 | repin and plan | Pin Div `92ea25a0`, rerun the probes, write these milestones and the gap-ID mapping | — | — | probes, CI |
+| M2 | deterministic Chromium capture (plan Q13) | Measure the byte stability of three ways of sampling an animation in pinned Chromium: negative delay with a paused animation, virtual time, and `--enable-begin-frame-control` with `HeadlessExperimental.beginFrame`. Cover a CSS animation and a rAF-driven JS animation. | — | — | repeated captures, distinct-hash counts |
+| M3 | Motion `animate()` core | Keyframe resolution, the easing set, the spring and inertia generators with their `linear()` export, `stagger`, and sequences. Pinned Motion version. | Engine keyframe effects, `Easing::LinearStops` (`linear()`), composition, playback controls | A3 Web Animations API (one `Element::animate` per property and controls by id stand in for the `Animation` handle and `finished`) | spring curve values against Motion's own output; sampled frames against Motion in Chromium (M2) |
+| M4 | react-spring core | The spring integrator, interruption with velocity, and chained springs | Inline style writes, `bounding_rect` | R1 requestAnimationFrame (`PlatformEvent::Presented` plus a keep-alive animation on the desktop; the test drives frames on the headless clock) | per-frame values and sampled frames against react-spring in Chromium |
+| M5 | GSAP core tween and timeline | Tweens, the timeline, eases and stagger. Before porting, the GSAP licence terms are checked and recorded. | Inline style writes | R1 requestAnimationFrame | per-frame values and sampled frames against GSAP in Chromium |
+| M6 | AutoAnimate | FLIP enter, exit and move for list children | `bounding_rect` after transforms, engine keyframe effects | O3 MutationObserver; A7 retained removed children; A3 `finished` | sampled frames of add, remove and reorder against AutoAnimate in Chromium |
+| M7 | tailwindcss-animate keyframes | The `enter`/`exit` keyframes with their default values, and reduced motion | Engine keyframe effects; `set_prefers_reduced_motion` | A2 `@keyframes`; S3 custom properties in keyframes; S1 `data-[state]` selectors; S4 `prefers-reduced-motion` media | sampled frames against the tw-animate-css stylesheet in Chromium |
+| M8 | Tier 0 remeasure | After R1, R4 and R5 land: delete the R1 scaffolds, rerun `measure_frame_cost`, `start_cost_by_animation_count` and `frame_pacing`, and update the gap list | R1, R4, R5 | — | the same commands as in Phase 1 |
+
+Blocked and not scheduled: **lottie-web** (V1 SVG, C2 Canvas 2D), Motion's
+`animateView` (A6 View Transitions), Motion's `scroll()` (A5 scroll-driven
+syntax) and Radix `Presence` (A2 events with `animationName`, A7).
+
+Each scaffold carries `// div-gap: <plan ID> <web feature>`. It is listed in
 [framework-gaps.md](framework-gaps.md) with the feature that replaces it,
-and is deleted when Div ships that feature. Each port gets the
-package-level fidelity comparison above.
+and it is deleted when Div ships that feature. Each port gets the
+package-level fidelity comparison above. Results are reported as measured,
+with the command and the conditions.
