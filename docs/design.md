@@ -114,6 +114,38 @@ div-engine), **framework** (divui, div-platform, div-macros), **components**
 - **F15** decides whether any of it is smooth.
 - **F14, F16 and F17** are large and can follow.
 
+**Platform decisions accepted on 13 November 2026.** The user accepted
+the platform plan's design decisions (`decisions-2026-11-13.md`, resolving
+plan questions Q1–Q16). The ones that change this design:
+
+- **One rendering design (Q2).** F15's damage and layers are not a
+  motion-only design. The engine designs partial redraw once, in an RFC:
+  damage regions first, then layers. It is Tier 0 item 0.7, together with
+  R5 (targeted sampling, O(1) start). Animation layers (including the
+  raster scale behind the fractional-`scale()` difference), off-thread
+  curves and the View Transitions snapshots of F14 are built on top of it,
+  as are the canvas samples' canvas slots. Motion contributes requirements
+  and measurements, not a second design.
+- **One Web Animations surface (Q12).** F3 is the single animation API.
+  Animations created by CSS (F1, F2) appear in `getAnimations()`. The
+  current single-property `Element::animate → AnimationId` is retired once
+  its users migrate. This repository's A3 scaffolds are among those users
+  and migrate when the surface lands.
+- **Runtime CSS (Q3).** Compile-time strict checking stays for code
+  written for Div. Third-party sheets, such as tw-animate-css, go through
+  a browser-compatible ingestion mode that drops what Chromium drops and
+  reports it. Runtime custom-property writes (`setProperty('--x')`, F7)
+  are supported, which react-spring and Radix's accordion height need.
+- **SVG earlier (Q9).** Inline SVG (F16, plan V1) starts right after the
+  engine's Tier 0 items, which brings lottie-web's SVG renderer and GSAP
+  DrawSVG closer.
+- **Retained children (Q15).** F18 is accepted as framework work outside
+  the web-feature rule, as a non-web contract that `AnimatePresence`
+  needs. It is not scheduled yet.
+- **Deterministic capture (Q13).** This repository owns the measurement:
+  Chromium's byte stability across runs, measured before choosing between
+  begin-frame control and virtual time (milestone M2).
+
 ## Probes
 
 | Probe | What it shows | Run |
@@ -507,7 +539,9 @@ the harness's exact RGBA comparison:
     `HeadlessExperimental.beginFrame` at fixed frame times is one option;
     CDP virtual time (`Emulation.setVirtualTimePolicy`) is the other.
     Which of the two gives byte-stable captures for compositor-driven
-    WAAPI animations is the first measurement to make.
+    WAAPI animations is the first measurement to make. This is plan
+    question Q13 and milestone M2. The decision is to measure before
+    choosing.
   - Each frame k is captured.
 - **Div side:**
   - The Rust port of the package runs the same scenario (a shared JSON
@@ -553,16 +587,18 @@ Milestones. Each is one PR, merged before the next starts.
 | --- | --- | --- | --- | --- | --- |
 | M1 | repin and plan | Pin Div `92ea25a0`, rerun the probes, write these milestones and the gap-ID mapping | — | — | probes, CI |
 | M2 | deterministic Chromium capture (plan Q13) | Measure the byte stability of three ways of sampling an animation in pinned Chromium: negative delay with a paused animation, virtual time, and `--enable-begin-frame-control` with `HeadlessExperimental.beginFrame`. Cover a CSS animation and a rAF-driven JS animation. | — | — | repeated captures, distinct-hash counts |
-| M3 | Motion `animate()` core | Keyframe resolution, the easing set, the spring and inertia generators with their `linear()` export, `stagger`, and sequences. Pinned Motion version. | Engine keyframe effects, `Easing::LinearStops` (`linear()`), composition, playback controls | A3 Web Animations API (one `Element::animate` per property and controls by id stand in for the `Animation` handle and `finished`) | spring curve values against Motion's own output; sampled frames against Motion in Chromium (M2) |
+| M3 | Motion `animate()` core | Keyframe resolution, the easing set, the spring and inertia generators with their `linear()` export, `stagger`, and sequences. Pinned Motion version. | Engine keyframe effects, `Easing::LinearStops` (`linear()`), composition, playback controls | A3 Web Animations API (one `Element::animate` per property and controls by id stand in for the `Animation` handle and `finished`; migrates when the single surface lands, per Q12) | spring curve values against Motion's own output; sampled frames against Motion in Chromium (M2) |
 | M4 | react-spring core | The spring integrator, interruption with velocity, and chained springs | Inline style writes, `bounding_rect` | R1 requestAnimationFrame (`PlatformEvent::Presented` plus a keep-alive animation on the desktop; the test drives frames on the headless clock) | per-frame values and sampled frames against react-spring in Chromium |
 | M5 | GSAP core tween and timeline | Tweens, the timeline, eases and stagger. Before porting, the GSAP licence terms are checked and recorded. | Inline style writes | R1 requestAnimationFrame | per-frame values and sampled frames against GSAP in Chromium |
 | M6 | AutoAnimate | FLIP enter, exit and move for list children | `bounding_rect` after transforms, engine keyframe effects | O3 MutationObserver; A7 retained removed children; A3 `finished` | sampled frames of add, remove and reorder against AutoAnimate in Chromium |
 | M7 | tailwindcss-animate keyframes | The `enter`/`exit` keyframes with their default values, and reduced motion | Engine keyframe effects; `set_prefers_reduced_motion` | A2 `@keyframes`; S3 custom properties in keyframes; S1 `data-[state]` selectors; S4 `prefers-reduced-motion` media | sampled frames against the tw-animate-css stylesheet in Chromium |
 | M8 | Tier 0 remeasure | After R1, R4 and R5 land: delete the R1 scaffolds, rerun `measure_frame_cost`, `start_cost_by_animation_count` and `frame_pacing`, and update the gap list | R1, R4, R5 | — | the same commands as in Phase 1 |
 
-Blocked and not scheduled: **lottie-web** (V1 SVG, C2 Canvas 2D), Motion's
+Blocked and not scheduled: **lottie-web** (V1 SVG, which starts right
+after the engine's Tier 0 per Q9, and C2 Canvas 2D), Motion's
 `animateView` (A6 View Transitions), Motion's `scroll()` (A5 scroll-driven
-syntax) and Radix `Presence` (A2 events with `animationName`, A7).
+syntax) and Radix `Presence` (A2 events with `animationName`, and A7,
+which Q15 accepted as framework work).
 
 Each scaffold carries `// div-gap: <plan ID> <web feature>`. It is listed in
 [framework-gaps.md](framework-gaps.md) with the feature that replaces it,

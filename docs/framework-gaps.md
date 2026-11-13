@@ -41,11 +41,25 @@ follows. "Tier 0" items are scheduled in Div; the others are not yet.
 | F13 | A5 | Scroll-driven animation syntax and objects | engine + framework | M | 3 |
 | F14 | A6 | View Transitions | engine + compositor | L | 3 |
 | F15 | R4, R5, R6 | Damage and partial raster; targeted sampling and O(1) start; compositor layers | engine (+ compositor) | M + S–M; L | **0** (R4, R5), 3 (R6) |
-| F16 | V1 | Inline SVG | engine | L | 1 |
+| F16 | V1 | Inline SVG | engine | L | 1 (starts right after the engine's Tier 0, Q9) |
 | F17 | C2 | Canvas 2D | engine | L | 2 |
-| F18 | A7 | Retaining removed keyed children until exit finishes | framework | S–M | 3 |
+| F18 | A7 | Retaining removed keyed children until exit finishes (non-web contract, accepted by Q15) | framework | S–M | 3 |
 
 F10 (geometry and computed style) already works and has no plan ID.
+
+The user's platform decisions of 13 November 2026 (`decisions-2026-11-13.md`)
+apply to these entries:
+
+- **R4/R6 (Q2).** One partial-redraw design, damage then layers, owned by
+  the engine. Animation layers and View Transitions build on it.
+- **A3 (Q12).** One Web Animations surface; CSS-created animations appear
+  in `getAnimations()`. Every `div-gap: A3` scaffold here uses
+  `Element::animate → AnimationId`, which is retired after migration, so
+  each scaffold is replaced by the new surface rather than kept as a
+  wrapper.
+- **S3 (Q3).** Runtime custom-property writes are supported, and
+  third-party sheets go through browser-compatible ingestion.
+- **A7 (Q15).** Accepted as framework work.
 
 ## Scaffolds
 
