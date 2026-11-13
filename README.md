@@ -1,19 +1,22 @@
 # Sample Motion
 
 A dogfood sample for animation and motion on
-[Div](https://github.com/build-with-div/div), a native Rust UI framework. It
-uses only Div's public API, and part of its job is to find what Div still
-needs for the motion of a professional desktop app.
+[Div](https://github.com/build-with-div/div), a native Rust UI framework.
+It ports the npm packages professionals use for motion (Motion, GSAP,
+react-spring, AutoAnimate, tailwindcss-animate with Radix `Presence`, and
+lottie-web) to Div's public API. Along the way it reports which web
+platform features Div must implement, matching Chromium, to power them.
 
 Status: phase 1, investigation. The repository holds probes and
-measurements; a motion gallery comes next.
+measurements; the ports come next.
 
-- [docs/design.md](docs/design.md): what works, what has a workaround and
-  what is missing, with measurements and the fidelity plan.
-- [docs/rfc-motion.md](docs/rfc-motion.md): proposed motion APIs and Div
-  work, as a draft for the Div tracks.
-- [docs/framework-gaps.md](docs/framework-gaps.md): how gaps are numbered
-  and marked in code.
+- [docs/design.md](docs/design.md): packages → platform features → what Div
+  has and is missing, with owners, sizes, measurements and the fidelity
+  plan.
+- [docs/rfc-motion.md](docs/rfc-motion.md): the proposed platform work, as a
+  draft for the Div tracks.
+- [docs/framework-gaps.md](docs/framework-gaps.md): temporary scaffolds and
+  the platform features that replace them.
 
 ## Build and test
 

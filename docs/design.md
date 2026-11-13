@@ -1,62 +1,117 @@
 # Sample Motion: design
 
 A dogfood sample for **animation and motion** on
-[Div](https://github.com/build-with-div/div), using only Div's public API.
-Phase 1 (this document) answers what it takes for Div to support the motion
-of a professional desktop app: what works today, what has a workaround, what
-is missing, who owns each gap and how big it is. Phase 2 builds a motion
-gallery on Div's public API with labelled `// div-gap:` workarounds; it
-starts only on the go-ahead.
+[Div](https://github.com/build-with-div/div). The approach is to **port the
+npm packages professionals use for motion and have Div implement the web
+platform features that power them**, faithfully and measured against pinned
+Chromium. Library logic (springs, timelines, presence, FLIP) belongs to the
+ported packages, which live in samples like this one. Div implements the
+platform underneath them. Workarounds in this repository are temporary
+scaffolding. Each is labelled `// div-gap: F<n>` with the platform feature
+that will replace it, and none is proposed as the solution.
+
+Phase 1 (this document) names the packages, maps them to platform features,
+and records what Div has, what is missing, who owns it and how big it is.
+Phase 2 ports the packages, and starts only on the go-ahead.
 
 Everything below was checked against Div **`565db46a`** (build-with-div/div
-`main`, 13 November 2026) by reading the source and by running the probes in
-this repository on Windows 11 (24 cores, RTX 3090, 5120-px display at
-239 Hz). File references are to the Div tree at that commit. The proposed
-APIs are in [rfc-motion.md](rfc-motion.md).
+`main`, 13 November 2026). The checks were made by reading the source and
+by running the probes in this repository on Windows 11 (24 cores, RTX 3090,
+a 5120-px display at 239 Hz). File references are to the Div tree at that
+commit. The proposed platform work is in [rfc-motion.md](rfc-motion.md).
 
 ## Summary
 
-- Div's animation **engine** is further along than its API: typed keyframe
-  effects with Chromium's timing model, every CSS easing function,
-  composition, controls, scroll and view timelines and a deterministic
-  clock. In a sampled-time comparison with pinned Chromium, 46 of 54 frames
-  were pixel-identical; the 8 others are two engine gaps (M8, M30).
-- What an app author needs around it is **missing**: CSS syntax and
-  automatic transitions, a frame callback, a handle type, presence,
-  springs, FLIP helpers, and reading the OS reduced-motion setting.
-- **Frames are expensive**: every animated frame re-cascades all styles,
-  re-records the whole paint and rasters the full viewport on the CPU (about
-  7 ms at 1280 × 800 for one animated square, measured under load). Nothing
-  is vsync-paced at the display rate, timers tick at 15.6 ms on Windows,
-  and starting N animations is quadratic.
-- Most app-level motion can be built **in divui on the existing engine**
-  (RFC §2): springs baked into `linear()` easings keep motion engine-driven,
-  deterministic and comparable with Chromium.
+- **Packages:** Motion (framer-motion), GSAP, react-spring, AutoAnimate,
+  tailwindcss-animate (shadcn's enter/exit, with Radix `Presence`) and
+  lottie-web.
+- **What powers them:**
+  - CSS Transitions and `@keyframes` animations
+  - the Web Animations API
+  - `requestAnimationFrame`
+  - geometry reads and the Resize, Intersection and Mutation observers
+  - Pointer Events
+  - scroll-driven animations
+  - View Transitions
+  - `prefers-reduced-motion`
+  - custom properties and selectors
+  - compositor-driven transform and opacity
+  - SVG and Canvas 2D for Lottie
+- **Div's engine is ahead of its platform surface:**
+  - It already has Chromium's animation timing model, every CSS easing
+    function, composition, the playback controls, scroll and view
+    timelines, and a deterministic clock. In a sampled-time comparison
+    with pinned Chromium, 46 of 54 frames were pixel-identical.
+  - None of it is reachable the way the packages reach it. There are no
+    CSS `transition`/`animation` properties and no `@keyframes`. The
+    Web Animations API is a single-property call with id-based controls.
+    There is no `requestAnimationFrame`, no observers, no media queries,
+    no View Transitions, no stroked SVG and no Canvas 2D.
+- **Frames are expensive:**
+  - Every animated frame re-cascades all styles, re-records the whole
+    paint and rasters the full viewport on the CPU: about 7 ms at
+    1280 × 800 for one animated square, measured under load.
+  - Nothing paces frames at the display's refresh rate, and timers tick
+    at 15.6 ms on Windows.
+  - Starting N animations is quadratic.
 
-### Div work list
+## Packages and the platform features they use
 
-| Owner | Item | Gaps | Size |
-| --- | --- | --- | --- |
-| framework | Frame callback before style, with frame timestamps; `AppSpec` access | M12, M21 | S–M |
-| framework (platform) | Vsync pacing at the display rate on every backend; occluded-window throttling; high-resolution timers | M11, M13, M14 | M |
-| framework (platform) | OS reduced-motion setting and change notification | M27 | S |
-| framework | `Animation` handle, `finished`, `reverse`, `getAnimations`; event details on `Event`; public frame/lifecycle stats | M5, M6, M15 | S |
-| framework (macros) | `transition:` directive in `view!`; element refs | M2, M25 | S–M |
-| framework | `divui::motion`: springs and decay baked into `linear()`, `Presence`, stagger, FLIP/shared-element helpers | M20, M22, M23, M24 | M each |
-| components | Use `Presence` in Dialog, Popover, Tabs indicator, Toast | M23 | S each |
-| engine | Named easings; multi-property effects | M3, M4 | S |
-| engine | `visibility` interpolation; `transition*` events | M8, M5 | S |
-| engine | Animation start without a full re-cascade | M29 | S–M |
-| engine (paint) | Animated fractional-scale raster parity | M30 | S–M |
-| engine | Individual transform properties; `filter`/`box-shadow`/`clip-path` interpolation | M7, M9 | M each |
-| engine | Targeted style sampling; damage and partial raster/present | M16, M17 | M each |
-| engine + compositor | Layer promotion and cached layer raster; off-thread curves | M18, M19 | L |
-| engine | CSS `transition-*`/`animation-*`/`@keyframes` (RFC 0001); custom properties; media queries | M1, M10, M28 | L |
-| engine tools | WPT interpolation tables → value tests; sample-at-time in the census harness | — | M each |
+| Package | What professionals use it for | Platform features it is built on |
+| --- | --- | --- |
+| **Motion** (`motion`, formerly framer-motion) | Declarative and imperative animation, springs, gestures, layout animations, `AnimatePresence`, scroll effects | **WAAPI** `element.animate` for opacity, transform, filter and clip-path, with springs exported as `linear()` easings (F3). **rAF** frame loop for the other values (F4). Inline style and custom-property writes (F7). **getBoundingClientRect** plus transform/scale correction for layout animations (F10). **ResizeObserver** and **IntersectionObserver** (`inView`) (F11). **Pointer Events** for hover, press and drag (F12). **ScrollTimeline** for `scroll()`, with scroll events as the fallback (F13). `matchMedia('(prefers-reduced-motion)')` (F9). Compositor transform and opacity (F15). SVG `pathLength` drawing (F16). `animateView` on **View Transitions** (F14). `AnimatePresence` relies on React keeping removed children rendered (F18). |
+| **GSAP** (+ ScrollTrigger, Flip, Draggable, DrawSVG, MorphSVG) | Timelines and sequencing, scroll storytelling, FLIP, SVG drawing and morphing | **rAF** ticker (F4). Inline style writes of transforms and other properties every frame (F7). `getComputedStyle` reads (F10). **getBoundingClientRect** for Flip and ScrollTrigger (F10). Scroll and resize events (F11, F13). `gsap.matchMedia` with reduced-motion conditions (F9). **Pointer Events** for Draggable (F12). **SVG** path `d`, `getTotalLength`, `stroke-dasharray`/`-dashoffset` (F16). |
+| **react-spring** (+ @use-gesture) | Spring physics, interruptible with velocity | **rAF** loop (F4). Inline style and **custom-property** writes (F7). `matchMedia` reduced motion (F9). Scroll events and **ResizeObserver** (F11, F13). **Pointer Events** with pointer capture (F12). |
+| **AutoAnimate** | Zero-config enter, exit and move animation of list children | **MutationObserver** on the parent (F11). **getBoundingClientRect** and `getComputedStyle` (F10). **WAAPI** `element.animate` with transform, opacity, width and height keyframes, plus `finished` (F3). It re-inserts removed nodes absolutely positioned to animate them out. `matchMedia` reduced motion (F9). |
+| **tailwindcss-animate** / tw-animate-css (shadcn) + Radix `Presence` | Enter/exit of dialogs, popovers, menus, toasts and accordions | **CSS @keyframes** `enter`/`exit` driven by **custom properties** (`--tw-enter-opacity`, `--tw-enter-translate-x`, …) inside keyframes (F2, F7). The `animation` shorthand and fill mode (F2). `data-[state=open]` **attribute selectors** (F8). `motion-safe`/`motion-reduce` → **`@media (prefers-reduced-motion)`** (F9). Radix `Presence` reads `getComputedStyle(node).animationName` and waits for `animationstart`/`animationend`/`animationcancel` before unmounting (F2, F10). The accordion animates height through a measured `--radix-accordion-content-height` (F7, F10). |
+| **lottie-web** | After Effects animations (icons, illustrations, onboarding) | **rAF** loop (F4). **SVG** renderer: `path d`, group transforms, masks, `clipPath`, gradients, stroke caps, joins and dashes (F16). **Canvas 2D** renderer: paths, Béziers, fill and stroke, `setTransform`, clip, `globalAlpha` (F17). |
+| Platform-level page transitions (React 19 `<ViewTransition>`, Astro, Next.js) | Route and state transitions with shared elements | **View Transitions** `document.startViewTransition`, `view-transition-name`, `::view-transition-*` pseudo-elements, and their CSS animations (F14, F2). |
 
-Areas: **engine** (div-style, div-layout, div-paint, div-text, div-engine),
-**framework** (divui, div-platform, div-macros, div-cli), **components**
+These dependencies come from the packages' current sources and docs, as
+known on 13 November 2026. Phase 2 starts each port by pinning the package
+version and confirming its platform calls before writing code.
+
+## Platform features: what Div has, what is missing
+
+This is the main deliverable. Each row is a web platform feature, to be
+implemented with Chromium's behaviour and pixels and measured with the
+comparison harness or WPT. Where a Rust-native surface is clearly better
+(typed values, typed handles, futures instead of promises), the web
+semantics stay underneath it: the same timing, events, ordering and
+interpolation.
+
+Owners: **engine** (div-style, div-layout, div-paint, div-text,
+div-engine), **framework** (divui, div-platform, div-macros), **components**
 (div-components). Sizes: **S** days, **M** one to two weeks, **L** more.
+
+| # | Platform feature | Packages | Div at `565db46a` | Missing | Owner | Size | Measured by |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| F1 | **CSS Transitions**: `transition-*`, automatic start on a computed-value change, `transitionrun/start/end/cancel`, `transition-behavior: allow-discrete`, `@starting-style` | tailwind, Radix, all CSS-styled components | Engine transition effect with Chromium timing, started only by an explicit `Element::transition` (`div-engine/src/animation.rs:758-800`). Fires `animation*` events (probe `gap_transitions_fire_animation_events_not_transition_events`). | The properties, triggering on style change, transition events, discrete transitions, `@starting-style` | engine | L | WPT css-transitions (§Fidelity) |
+| F2 | **CSS Animations**: `@keyframes`, `animation-*`, events with `animationName`/`elapsedTime`, `getComputedStyle().animationName` | tailwindcss-animate, Radix Presence, View Transitions | Engine keyframe effects with Chromium's timing model and all easings. Events dispatched, but with no detail on the `Event` (`crates/divui/src/document.rs:1013-1022`). | `@keyframes` and `animation-*` in style rules (RFC 0001 already orders them in the cascade), event detail, named easing keywords | engine | L | WPT css-animations |
+| F3 | **Web Animations API**: `element.animate(keyframes, options)` with several properties and implicit from/to; an `Animation` with play, pause, reverse, finish, cancel, `currentTime`, `startTime`, `playbackRate`, `updatePlaybackRate`, `finished`/`ready`, `onfinish`, `persist`, `commitStyles`; replaceable-animation removal; `getAnimations()`; `document.timeline`; `iterationComposite` | Motion, AutoAnimate (and the base of F1/F2) | Single-property `Element::animate` with typed keyframes (`crates/divui/src/element.rs:364`). Pause, play, seek, rate, finish and cancel by `AnimationId` on `Document` (`document.rs:890-990`). Composite replace/add/accumulate. | An `Animation` handle, multi-property effects, implicit keyframes, `reverse`, `startTime`, `updatePlaybackRate`, `finished` as a future, `commitStyles`, `persist` and auto-removal, `getAnimations`, iteration composite | framework (API) + engine (effect model) | M | WPT web-animations |
+| F4 | **`requestAnimationFrame`**: callbacks before style each frame, with the frame's timestamp, cancellable, and throttled when hidden | Motion, GSAP, react-spring, lottie-web | None. The nearest is `PlatformEvent::Presented`, which runs after present, is only on `App::builder()` (`crates/divui/src/app.rs:198`), and needs something else animating to keep frames coming. | All of it, including headless `render_at(t)` running the callbacks at `t` | framework | S–M | WPT `html/webappapis/update-rendering` subset; package comparisons |
+| F5 | **Frame production**: vsync-paced frames at the display's refresh rate, frame timestamps, high-resolution timers, throttling of occluded windows | all | Redraws chain while animating (`div-platform/src/desktop.rs:827-829`). Swap interval 1 on GL only, unthrottled softbuffer, wall-clock time at redraw start. `sleep(1 ms)` takes 15.4 ms (§Timers). Minimized windows are excluded, occluded ones are not. | Pacing on every backend at the real refresh rate, present-time stamps, high-resolution timers, occlusion | framework (platform) | M | `examples/frame_pacing.rs` |
+| F6 | **Interpolation coverage and raster parity** | all | 48 length, 13 color, 12 number, 12 integer, 4 length-list and 1 transform interpolable property. Transform lists use matrix decomposition. Animated rotate and translate are pixel-exact against Chromium. | `visibility` (Div flips it at p = 0.5 instead of applying the CSS rule; confirmed in pixels). Individual `translate`/`rotate`/`scale`. `filter` lists. `box-shadow`. `clip-path`. `display`/allow-discrete. `interpolate-size`. **Animated fractional `scale()` edge pixels** (the static scale is exact). | engine (style, paint) | S each for visibility and scale parity, M each for the rest | WPT interpolation tables, sampled-time probe |
+| F7 | **CSS custom properties**: `var()` including inside `@keyframes`, `@property` registration, `style.setProperty('--x')` | tailwindcss-animate, Radix, react-spring, Motion | Rejected: "custom properties are not supported yet" (`div-style/src/declaration_block.rs:89-91`). Dynamic `style:` needs typed values (sample-git gap 3). | All | engine | L | WPT css-variables, css-properties-values-api |
+| F8 | **Selectors and cascade**: class and attribute selectors (`[data-state=open]`), state-driven restyle | tailwindcss-animate, Radix | None: inline styles only (`docs/status.md:19`). Alpha work A1 (typed style rules) is in progress. | As planned in A1 | engine | L (A1) | census |
+| F9 | **Media queries**: `@media (prefers-reduced-motion)`, `matchMedia` with change events, and the OS setting | all | A manual `Document::set_prefers_reduced_motion`. With it, finite animations jump to their end (`div-engine/src/accessibility.rs:215-223`). No OS query, no media queries. | Media queries, `matchMedia`, reading `SPI_GETCLIENTAREAANIMATION` and the Linux portal setting plus their change notifications | engine (MQ) + framework (platform) | M + S | WPT mediaqueries |
+| F10 | **Geometry and computed style**: `getBoundingClientRect` after transforms, `getComputedStyle`, offset metrics | Motion, GSAP Flip, AutoAnimate, Radix | **Works.** `bounding_rect()` flushes layout and returns the transformed rect (probe `transform_animation_moves_the_layout_box_read_by_bounding_rect`). Typed `computed_style()` returns animated values. | Typed `animation_name` in computed style (with F2) | — | — | census |
+| F11 | **Observers**: ResizeObserver, IntersectionObserver, MutationObserver; resize and scroll events | Motion, AutoAnimate, react-spring, GSAP | Scroll events only (`crates/divui/src/scroll_notification_tests.rs`). No observer of any kind in divui or the engine. | ResizeObserver and IntersectionObserver with HTML's update-the-rendering ordering; MutationObserver | framework + engine | M each | WPT resize-observer, intersection-observer, dom/nodes |
+| F12 | **Pointer Events**: `pointer*` events, pointer capture, `touch-action`, coalesced events | Motion, react-spring/@use-gesture, GSAP Draggable | `set_pointer_capture` and `dispatch_pointer_event` exist (`element.rs:1122`, `document.rs:1056`). Headless dispatch produces no `pointer*` events (sample-git gap 7). | Owned by the **interactions** sample; motion needs velocity from event timestamps | framework | (interactions) | WPT pointerevents |
+| F13 | **Scroll-driven animations**: `animation-timeline: scroll()/view()`, `animation-range`, `ScrollTimeline`/`ViewTimeline` | Motion `scroll()`, GSAP ScrollTrigger (scroll-event path) | **Engine has it:** scroll and view timelines with named ranges (`element.rs:381-558`, `div-engine/src/animation_timeline.rs`). Not Chromium-qualified (`docs/v02/animations.md:148-149`). | CSS syntax (with F2) and timeline objects in the F3 API | engine + framework | M | WPT scroll-animations |
+| F14 | **View Transitions**: `startViewTransition`, `view-transition-name`, snapshots, `::view-transition-*` pseudo-elements | Motion `animateView`, React `<ViewTransition>` | None | All. Needs element snapshots as layers (F15) and pseudo-element trees. | engine + compositor | L | WPT css-view-transitions |
+| F15 | **Compositor-driven animation**: transform, opacity and filter frames without a style re-cascade, paint re-record or full re-raster; damage; layer promotion (`will-change`, running animations); off-main-thread curves; cheap animation start | all | Transform and opacity skip layout (`Composite` invalidation, `div-engine/src/lib.rs:2880-2886`). Every frame still re-cascades, re-records the whole paint, reports full-viewport damage and rasters the full viewport. Starting an animation re-cascades every root: 16 ms per `animate()` with 1000 running. | Targeted style sampling, damage and partial raster/present, layers, off-thread curves (a Div release blocker, `docs/architecture/threading-model.md:66-67`), O(1) start | engine + compositor + framework | S–M (start cost), M (targeted style, damage), L (layers, off-thread) | `measure_frame_cost`, `frame_pacing` |
+| F16 | **SVG**: stroked paths, `stroke-dasharray`/`-dashoffset`, `pathLength`, `getTotalLength`/`getPointAtLength`, gradients, masks, `clipPath`, SVG attribute animation | lottie-web, GSAP DrawSVG/MorphSVG, Motion path drawing | Only filled rects and axis-aligned paths (known gap) | All | engine (paint) | L | WPT svg; shared with **charts** |
+| F17 | **Canvas 2D** | lottie-web canvas renderer | None (the `canvas` hits are the canvas background) | All | engine + framework | L | WPT html/canvas; owned by the **canvas** sample |
+| F18 | **Retaining removed children**: a component can keep a removed keyed child mounted until its exit animation finishes. This is React's model, and `AnimatePresence` and Radix `Presence` depend on it. | Motion, Radix, AutoAnimate (re-insertion) | `Show`/`For` unmount at once (`crates/divui/src/renderer.rs`). Whether a component can retain children through `DynChild` is unverified. | Verify first; if not possible, a renderer hook. Not a web platform feature but the React-equivalent contract. | framework | S–M | probe (Phase 2) |
+
+**Order of value:**
+- **F4 and F3** unblock the imperative packages: Motion, react-spring,
+  AutoAnimate and GSAP core.
+- **F7, F8, F2 and F9** unblock the shadcn enter/exit stack. These are
+  already the alpha plan's A1 path.
+- **F15** decides whether any of it is smooth.
+- **F14, F16 and F17** are large and can follow.
 
 ## Probes
 
@@ -189,76 +244,6 @@ timing and timeline work is not yet Chromium-qualified
   (`docs/architecture/threading-model.md:42-44`, `66-67`;
   `docs/v02/animations.md:166-175`).
 
-## Works / workaround / missing
-
-`M` numbers are this sample's gap numbers (`div-gap: M<n>` in code).
-
-### CSS transitions and animations
-
-| # | Capability | State | Evidence / workaround | Owner | Size |
-| --- | --- | --- | --- | --- | --- |
-| — | Keyframe effects on typed properties (opacity, transform, colors, lengths) | **works** | `Element::animate`; probes | — | — |
-| — | Timing: negative delay, fractional/infinite iterations, direction, fill, play state, rate, composite | **works** | probe `delay_fill_iterations_and_direction_follow_css_timing`, `additive_composition_stacks_transforms` | — | — |
-| — | Easing: `cubic-bezier`, `steps` (4 jumps), `linear()` stops | **works** | probes | — | — |
-| — | Pause, play, seek, rate, finish, cancel | **works** by id | probe `pause_seek_rate_and_cancel_are_available_by_id` | — | — |
-| — | Scroll- and view-linked animation with ranges | **works** (native API; not Chromium-qualified) | `animate_on_scroll`, `animate_on_view` | — | — |
-| M1 | `transition-*`, `animation-*`, `@keyframes` (CSS syntax) | **missing** | Typed calls only. Workaround: call `animate`/`transition` from code. RFC 0001 already orders them in the cascade. | engine | L |
-| M2 | Automatic transitions on style change | **missing** | Workaround: call `Element::transition` instead of `set_property`; a `transition:` directive in `view!` could do it (RFC §2.2) | framework (macros), then engine | S–M |
-| M3 | Named easings `ease`, `ease-in`, `ease-out`, `ease-in-out` | **missing** | Workaround: `Easing::cubic_bezier(0.25, 0.1, 0.25, 1.0)` etc. | engine | S |
-| M4 | Several properties in one effect | **missing** | One `animate` per property, each with its own id and events | engine + framework | S–M |
-| M5 | `transitionrun/start/end/cancel` events; event detail (property, elapsed) on the `Event` | **missing** | `animation*` events fire; details via `drain_animation_events` | engine + framework | S |
-| M6 | Handle object, `finished` future, `reverse()`, `getAnimations()` | **missing** | Poll `animation_state(id)`; negative playback rate for reverse | framework | S |
-| M7 | Individual `translate`, `rotate`, `scale` properties | **missing** | Compose in one `transform` list, or `CompositeOperation::Add` | engine | M |
-| M8 | `visibility` interpolation (visible for 0 < p < 1 if either end is) | **wrong**: discrete at 0.5 | probe `gap_visibility_is_discrete_at_half_way` | engine | S |
-| M9 | `filter` list, `box-shadow`, `clip-path` interpolation | **missing** (only `filter-blur`, `filter-grayscale` numbers; `box-shadow` discrete) | Animate opacity of a shadow layer instead | engine | M each |
-| M10 | Custom properties | **missing** (`declaration_block.rs:89-91`) | Typed values in Rust | engine | L |
-
-### Frame scheduling
-
-| # | Capability | State | Evidence / workaround | Owner | Size |
-| --- | --- | --- | --- | --- | --- |
-| — | Continuous frames while an engine animation runs; idle otherwise | **works** | `desktop.rs:827-829` | — | — |
-| M11 | Vsync-paced presentation on every backend; display refresh rate | **missing** | GL: swap interval 1 only; software: unthrottled. See §Measurements | framework (platform) | M |
-| M12 | Frame callback (`requestAnimationFrame`) with a frame timestamp, before style | **missing** | `App::on_platform_event` + `Presented` (after present, `App::builder` only) plus a "keep-alive" infinite engine animation to keep frames coming | framework | S–M |
-| M13 | Timer resolution | see §Measurements | — | framework | S |
-| M14 | Throttle occluded windows | **missing** | Minimized windows already excluded | framework (platform) | S |
-| M15 | Public frame/lifecycle statistics | **missing** (`LifecycleStats`, `CompositorStats` exist but are private) | Time the public calls from outside, as `measure_frame_cost` does | framework | S |
-
-### Compositor-driven animation
-
-| # | Capability | State | Evidence / workaround | Owner | Size |
-| --- | --- | --- | --- | --- | --- |
-| — | Transform/opacity frames skip layout | **works** | `Composite` invalidation; `measure_frame_cost` transform vs width | — | — |
-| M16 | Transform/opacity frames skip re-cascade and paint re-record | **missing** | — | engine | M |
-| M17 | Damage tracking and partial raster/present | **missing** (full-viewport damage) | Keep windows small; animate small regions | engine + framework | M |
-| M18 | Layer promotion (running animation or `will-change`) and cached layer raster | **missing** | — | engine + compositor | L |
-| M19 | Off-UI-thread animation (smooth while the UI thread is busy) | **missing** (Div release blocker) | Keep UI-thread work under a frame | engine + framework | L |
-| M29 | Starting an animation costs O(running animations) | **slow**: 16 ms per `animate()` with 1000 running (§Measurements) | Start fewer animations; animate a container instead of each child | engine | S–M |
-| M30 | Animated fractional `scale()` edge pixels match Chromium | **differs** (static scale is exact) | — | engine (paint) | S–M |
-
-### App-level motion
-
-| # | Capability | State | Evidence / workaround | Owner | Size |
-| --- | --- | --- | --- | --- | --- |
-| — | Staggered lists | **works** by hand | per-item `delay_ms = index × step` | — | — |
-| — | Scroll-linked effects | **works** | native scroll/view timelines | — | — |
-| — | Layout reads for FLIP | **works** | `bounding_rect()` flushes layout and is post-transform (probe `transform_animation_moves_the_layout_box_read_by_bounding_rect`) | — | — |
-| M20 | Springs/physics, interruptible and velocity-preserving | **missing** | Bake the spring into `linear()` stops and retarget with a new baked curve from the analytic state (RFC §2.3); or integrate per frame (M12 workaround). `transition` retargets from the current value but restarts velocity at zero (probe `interrupting_a_transition_starts_from_the_current_value_without_velocity`) | framework | M |
-| M21 | Imperative tweening tied to signals | **missing** | Per-frame `set_property` from `Presented` (measured in §Measurements, `signal` mode) | framework | S (after M12) |
-| M22 | Layout animation (FLIP) and shared-element transitions | **missing** helpers | FLIP by hand: rects before, mutate, rects after, additive inverse transform animation | framework | M |
-| M23 | Enter/exit presence (animate out before removal) | **missing**: `Show`/`For` unmount at once (`crates/divui/src/renderer.rs`); RFC 0003 deferred exit animations | Keep the node, animate, remove on `animationend` | framework, then components | M + S each |
-| M24 | Gesture-driven motion: drag, inertia, snap | **partial**: pointer capture API exists; headless dispatch makes no `pointer*` events (sample-git gap 7); no velocity tracker or decay curve | Coordinate with the interactions sample; decay = baked curve like M20 | framework | M |
-| M25 | Element refs and motion directives in `view!` | **missing** (no ref attribute) | `element_by_id` or build elements in code | framework (macros) | S |
-| M26 | Lottie / vector animation | **missing**: no stroked or general paths in div-paint | Out of scope until paths land (sample-charts' area) | engine | L |
-
-### Accessibility and correctness
-
-| # | Capability | State | Evidence / workaround | Owner | Size |
-| --- | --- | --- | --- | --- | --- |
-| — | Reduced-motion behaviour in the engine | **works** (finite animations jump to the end) | probe | — | — |
-| M27 | Read the OS reduced-motion setting and its changes | **missing** (no `SPI_GETCLIENTAREAANIMATION`, no portal setting) | App reads the setting itself and calls `set_prefers_reduced_motion` | framework (platform) | S |
-| M28 | `@media (prefers-reduced-motion)` | **missing** (no media queries, `docs/status.md:19`) | Typed branches in Rust | engine | M (part of media queries) |
-
 ## Measurements
 
 Measured, not claimed: each number below holds for the command and the
@@ -303,16 +288,16 @@ What the table shows, without claims beyond it:
 
 - **Raster sets a floor** of about 6.4–8.4 ms median per frame at
   1280 × 800 whatever N is, because every frame rasters the full viewport
-  (M17). One animating 24-px square costs as much raster as the whole page.
+  (F15). One animating 24-px square costs as much raster as the whole page.
 - **Style sampling grows faster than N**: 100 → 1000 elements is ×17.8
   (transform) and ×16.7 (background-color) in the sample stage. Each frame
-  re-cascades every root (M16).
+  re-cascades every root (F15).
 - **Transform frames were not cheaper than width frames** in the update
   stage at N = 1000 (21.75 vs 12.66 ms median) in this layout, although
   transform skips layout: the retained-transform refresh and the full paint
   re-record dominate. At N ≤ 100 they are within 0.3 ms.
 - The per-stage split stops at Div's public API: layout and paint recording
-  are not separable from outside (M15).
+  are not separable from outside: Div exposes no lifecycle statistics.
 
 ### Starting animations
 
@@ -328,7 +313,7 @@ same N cells with one `animate()` each; the difference divided by N.
 The cost of one `animate()` grows linearly with the number of running
 animations, so starting N animations is quadratic: 1000 staggered list items
 take 16 s to start. Natively, `frame_pacing engine 1000` presented its first
-frame 18 056 ms after process start. **M29** (engine, S–M): starting an
+frame 18 056 ms after process start. **F15** (engine, S–M): starting an
 animation should not re-cascade every root, or starts should batch to one
 re-cascade per frame. This also bounds staggered lists and `Presence` with
 many children.
@@ -357,11 +342,11 @@ handler's `Instant` agrees within 0.3 ms everywhere).
   (`docs/progress/tracks/framework.md:396-400`) was not reproduced here
   because raster dominated.
 - Every UI-thread block shows up as a frame of the block's length: there
-  is no off-thread animation (M19).
+  is no off-thread animation (F15).
 - Imperative per-frame motion from the `Presented` callback kept the same
   rate as engine animations at 100 cells, but needs an infinite
   "keep-alive" engine animation to keep frames coming and lands one frame
-  late (it runs after present) — M12.
+  late (it runs after present). That is a scaffold; the platform feature is `requestAnimationFrame` (F4).
 
 ### Timers
 
@@ -373,9 +358,9 @@ handler's `Instant` agrees within 0.3 ms everywhere).
 | `task::time::sleep(1 ms)` actual duration | 217 | 13.87 | 15.40 | 16.33 | 16.68 | 17.96 | 1.21 |
 
 `sleep(1 ms)` took 15.4 ms at the median, which is the default Windows
-timer tick of about 15.6 ms: timers cannot pace animation on Windows (M13:
-a high-resolution waitable timer or `timeBeginPeriod` while animating, and
-the frame callback M12 instead of timers for motion).
+timer tick of about 15.6 ms: timers cannot pace animation on Windows (F5:
+high-resolution timers; and motion should run from `requestAnimationFrame`,
+F4, not from timers).
 
 ## Fidelity
 
@@ -401,11 +386,11 @@ at 1×, a 60 × 60 blue box, 1000 ms animations, t = 0, 100, 250, 500, 750,
 | same, `linear(0, 0.25 75%, 1)` | 4 / 6 | t = 250: 260 px off by 1; t = 750: 300 px off by 1 |
 | same, percentage stops | 4 / 6 | identical to the row above |
 | static `scale(1.75)`, not animated (control) | 6 / 6 | — |
-| visibility hidden → visible, linear | 4 / 6 | t = 100, 250: Div hidden, Chromium visible (M8) |
+| visibility hidden → visible, linear | 4 / 6 | t = 100, 250: Div hidden, Chromium visible (F6) |
 
-- **M8 confirmed in pixels**: Chromium shows the box for 0 < p < 1, Div
-  hides it until p = 0.5.
-- **M30 (engine: paint), new**: an *animated* fractional scale rasters
+- **The `visibility` gap (F6) is confirmed in pixels**: Chromium shows the box for 0 < p < 1, Div
+  hides it until p = 0.5 (F6).
+- **Animated fractional scale (F6, engine: paint), new finding**: an *animated* fractional scale rasters
   differently from Chromium at the box edges, while the same static scale
   is exact. The differences are on edge pixels only. Likely cause, not
   verified: Chromium composites an element with a running transform
@@ -415,7 +400,7 @@ at 1×, a 60 × 60 blue box, 1000 ms animations, t = 0, 100, 250, 500, 750,
   groups (`div-paint/src/painter.rs:1722-1730`); running animations may need
   the same rule. Rotation and translation matched exactly.
 - The 1-level differences under `linear()` easing also appear with plain
-  linear easing at the same scale, so they belong to M30, not to the easing.
+  linear easing at the same scale, so they belong to that finding, not to the easing.
 
 ### WPT: what the existing porter gives
 
@@ -430,14 +415,33 @@ committed to Div.
 | css-transitions | 186 | 5 | 4 references, 1 crash test | 180 `uses_javascript`, 1 unsupported `transition` |
 | css-easing | 13 | 1 | — | 12 `uses_javascript` |
 
-None of the portable files exercises Div's animation engine: the porter
-freezes all animations at t = 0 (`tools/wpt/port_wpt.py:7657-7664`, and the
-Chromium template pauses them, `tools/accountability/run_all_pixel_comparisons.py:69-71`),
-and its only sampling path interpolates `background-color`
-(`port_wpt.py:3186-3226`). In the WPT tree itself, css-transitions has 6
-reftests and 118 testharness files, css-animations 29 reftests and 112
-testharness files, css-easing 12 testharness files (excluding support,
-references and crash tests).
+None of the portable files exercises Div's animation engine:
+- The porter freezes every animation at t = 0
+  (`tools/wpt/port_wpt.py:7657-7664`), and the Chromium template pauses
+  them (`tools/accountability/run_all_pixel_comparisons.py:69-71`).
+- The porter's only sampling path interpolates `background-color`
+  (`port_wpt.py:3186-3226`).
+
+### WPT: the suites for the motion platform
+
+Counted in upstream WPT at `cb1a0cb1` (24 March 2026, the same day as the
+Chromium checkout's commit). The counts exclude support files, references,
+crash tests and `-expected` files. The Chromium column counts the
+`-expected.txt` baselines in the Chromium checkout: files where Chromium
+records its own subtest results that differ from a full pass.
+
+| suite | test files | tentative | testharness | reftests (with script) | Chromium baselines | feature |
+| --- | ---: | ---: | ---: | ---: | ---: | --- |
+| css/css-transitions | 180 | 17 | 119 | 6 (5) | 6 | F1 |
+| css/css-animations | 207 | 28 | 112 | 29 (15) | 9 | F2 |
+| web-animations | 151 | 6 | 133 | 18 (18) | 23 | F3 |
+| scroll-animations | 226 | 75 | 193 | 33 (31) | 16 | F13 |
+| css/css-view-transitions | 445 | 22 | 135 | 306 (303) | 0 | F14 |
+
+Almost every motion test is a testharness file or a reftest that runs a
+script, typically waiting for animation frames before the screenshot. Div
+runs no JavaScript, so "port through the harness" means translating the
+scripts, not rendering the pages.
 
 ### WPT: what would carry real signal
 
@@ -451,40 +455,95 @@ css-sizing (16), css-fonts (16), filter-effects (12).
 
 ### Plan
 
-1. **Keep the sampled-time probe here** and grow it per property family as
-   the gallery needs them (Phase 2), so each workaround has a Chromium check.
-2. **Interpolation tables → Div value tests** (engine tools, M): extract the
-   tables with a static parser (the porter's approach to HTML), emit one Rust
-   test per row that animates the property with `Element::animate` and
-   compares the computed value at each fraction to Chromium's expectation;
-   for visual properties, also emit a sampled pixel pair. Count the rows that
-   map onto Div's typed properties before sizing further.
-3. **Sample-at-time in the census harness** (engine tools, M): let the porter
-   map the `animation` shorthand and `@keyframes` onto `Element::animate` plus
-   `advance_time(t)` instead of freezing at 0, and let the Chromium side use
-   negative-delay rewriting (as this probe does) or CDP
-   `Animation.seekAnimations` for transitions. Then the 29 + 6 reftests and
-   sampled variants of the css-animations files become meaningful.
-4. **testharness files** stay out until Div has a script-free way to express
-   their assertions; the interpolation tables cover most of what they check
-   about values.
+**Platform level: Div against Chromium, per feature.**
 
-## Phase 2: the motion gallery (on go-ahead)
+1. **Translate testharness scripts to native calls.** Div already has a
+   JavaScript-to-native inventory for WPT
+   (`tools/wpt/javascript_mutation_ir.mjs`). It parses with acorn,
+   recognizes the testharness assertions, and today rejects
+   `requestAnimationFrame` as `animation-frame-dependency`. Extend it so that:
+   - the Web Animations API calls (`animate`, `getAnimations`,
+     `currentTime`, `playbackRate`, `finished`, `effect.getComputedTiming`)
+     map onto the F3 API;
+   - `getComputedStyle` reads map onto typed computed style;
+   - `waitForAnimationFrames(n)` / rAF map onto deterministic frames of the
+     F4 clock.
 
-Small PRs, each a page of one window, each workaround marked
-`// div-gap: M<n>` and recorded in `docs/framework-gaps.md`:
+   Each translated subtest becomes a Rust test whose oracle is the
+   assertion, adjusted by Chromium's `-expected.txt` baseline where
+   Chromium itself fails a subtest. That way Div matches Chromium, not only
+   the spec. Order: web-animations (F3), css-animations (F2),
+   css-transitions (F1), scroll-animations (F13), then
+   css-view-transitions (F14). Count the subtests that translate before
+   sizing each suite. (engine tools, M per suite)
+2. **Interpolation tables → value and pixel tests.** WPT's 327
+   `interpolation-testcommon.js` files are data tables (above), so they
+   need no script execution. Generate one Rust test per row: animate the
+   property and compare the computed value at each fraction. For visual
+   properties, also generate a sampled pixel pair against Chromium.
+   (engine tools, M)
+3. **Sample at time t in the census harness.**
+   - Div side: the porter maps `animation`/`@keyframes` (and, after F1,
+     transitions) onto the engine and calls `advance_time(t)` instead of
+     freezing at 0.
+   - Chromium side: rewrite to a negative delay, as this repository's
+     probe does, or use CDP `Animation.seekAnimations`.
+   - This makes the 35 css-animations and css-transitions reftests
+     meaningful. (engine tools, M)
+4. **This repository's sampled-time probe** grows with each feature the
+   ports need, so every scaffold has a Chromium check until the WPT ports
+   above replace it.
 
-1. Shell and easing page: every easing curve drawn as a moving dot and a
-   plotted curve, sampled headless in tests (snapshot at fixed times).
-2. Transitions page: hover/press/toggle states through `Element::transition`
-   (M2 workaround), interruption demo.
-3. Presence and lists: a toast stack and a filterable list with enter/exit
-   and stagger (M23 workaround).
-4. Springs and drag: a draggable card with inertia and snap back, spring
-   retargeting (M20, M24 workarounds; pointer input coordinated with the
-   interactions sample).
-5. FLIP: grid re-ordering and a card that expands into a detail view (M22).
-6. Scroll-linked: a header that shrinks and a progress bar on scroll and
-   view timelines.
-7. Stress page: N animating elements with an on-screen frame-time graph
-   (M12, M15 workarounds), for repeatable measurements.
+**Package level: the port against the original package.** For each
+package, the same scenario runs both ways and the frames are diffed with
+the harness's exact RGBA comparison:
+
+- **Chromium side:**
+  - The pinned npm package, vendored with a lockfile under `fidelity/web/`,
+    runs a scenario page in pinned Chromium 147.
+  - Time is made deterministic by driving frames explicitly. Headless
+    Chromium's `--enable-begin-frame-control` with
+    `HeadlessExperimental.beginFrame` at fixed frame times is one option;
+    CDP virtual time (`Emulation.setVirtualTimePolicy`) is the other.
+    Which of the two gives byte-stable captures for compositor-driven
+    WAAPI animations is the first measurement to make.
+  - Each frame k is captured.
+- **Div side:**
+  - The Rust port of the package runs the same scenario (a shared JSON
+    script: mount, set target, add or remove item, pointer path, scroll
+    offset, at frame k).
+  - It runs on the headless clock, with `requestAnimationFrame` callbacks
+    at the same frame times (F4).
+- **Requirements for the port:** f64 arithmetic and the package's own
+  formulas, so a pixel difference points at the platform rather than at
+  the port. The springs Motion exports as `linear()` easings, for example,
+  are compared as the exact easing strings Motion produces.
+- **Applies to:** each package in the table above, once its platform
+  features exist. Until then, the same scenario compares only the parts
+  that run.
+
+## Phase 2: porting the packages (on go-ahead)
+
+Ports live in this repository as Rust crates that keep each package's
+semantics and formulas, built only on Div's public platform surface. Order
+follows platform readiness:
+
+1. **Motion's `animate()` core** (keyframes, spring → `linear()` export,
+   sequencing), on F3 and F4. Scaffolding until they land: the
+   single-property `Element::animate` with `AnimationId` controls stands in
+   for F3. `Presented` plus a keep-alive animation stands in for F4.
+2. **react-spring core** (spring integration, interruption with velocity),
+   on F4.
+3. **AutoAnimate**, on F3, F10, F11 and F18. A scaffold stands in for the
+   MutationObserver until F11.
+4. **GSAP core timeline**, on F4.
+5. **tailwindcss-animate and Radix `Presence`**, on F2, F7, F8, F9 and F18.
+   This port is blocked on the A1 stylesheet work. Until then, only the
+   keyframes are exercised, through F3.
+6. **lottie-web**, on F16 and F17. Blocked: coordinate with the charts and
+   canvas samples.
+
+Each scaffold carries `// div-gap: F<n>`, is listed in
+[framework-gaps.md](framework-gaps.md) with the feature that replaces it,
+and is deleted when Div ships that feature. Each port gets the
+package-level fidelity comparison above.
