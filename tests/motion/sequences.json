@@ -1,0 +1,123 @@
+{
+ "comment": "Motion 14.14.0 stagger() and sequence cases. Subjects are element indices. Transform keyframes are {tx, ty, rotate}: translate(tx px, ty px) rotate(rotate deg). A delay of {\"stagger\": d, ...} is stagger(d, {...}). tools/motion_oracle.py sequences records Motion's element.animate() calls for each.",
+ "staggers": [
+  {"name": "stagger-default", "elements": 4, "keyframes": {"opacity": [0, 1]}, "transition": {"duration": 0.4, "delay": {"stagger": 0.1}}},
+  {"name": "stagger-from-last", "elements": 4, "keyframes": {"opacity": [0, 1]}, "transition": {"duration": 0.4, "delay": {"stagger": 0.1, "from": "last"}}},
+  {"name": "stagger-from-center-start-delay", "elements": 5, "keyframes": {"opacity": [0, 1]}, "transition": {"duration": 0.4, "delay": {"stagger": 0.15, "from": "center", "startDelay": 0.2}}},
+  {"name": "stagger-from-index", "elements": 5, "keyframes": {"opacity": [0, 1]}, "transition": {"duration": 0.3, "delay": {"stagger": 0.07, "from": 2}}},
+  {"name": "stagger-edges", "elements": 5, "keyframes": {"opacity": [0, 1]}, "transition": {"duration": 0.3, "delay": {"stagger": 0.1, "from": "edges"}}},
+  {"name": "stagger-ease-name", "elements": 5, "keyframes": {"opacity": [0, 1]}, "transition": {"duration": 0.3, "delay": {"stagger": 0.1, "ease": "easeIn"}}},
+  {"name": "stagger-ease-bezier", "elements": 5, "keyframes": {"opacity": [0, 1]}, "transition": {"duration": 0.3, "delay": {"stagger": 0.1, "ease": [0.5, 0, 0.5, 1]}}},
+  {"name": "stagger-grid-center", "elements": 6, "keyframes": {"opacity": [0, 1]}, "transition": {"duration": 0.3, "delay": {"stagger": 0.1, "from": "center", "grid": [3, 2]}}},
+  {"name": "stagger-grid-index", "elements": 9, "keyframes": {"opacity": [0, 1]}, "transition": {"duration": 0.3, "delay": {"stagger": 0.05, "from": 4, "grid": [3, 3]}}},
+  {"name": "stagger-grid-edges-ease", "elements": 9, "keyframes": {"opacity": [0, 1]}, "transition": {"duration": 0.3, "delay": {"stagger": 0.08, "from": "edges", "grid": [3, 3], "ease": "easeOut"}}},
+  {"name": "stagger-spring", "elements": 3, "keyframes": {"opacity": [0, 1]}, "transition": {"type": "spring", "stiffness": 300, "damping": 20, "delay": {"stagger": 0.1}}},
+  {"name": "stagger-transform", "elements": 4, "keyframes": {"transform": [{"tx": 0, "ty": 0, "rotate": 0}, {"tx": 40, "ty": 10, "rotate": 90}]}, "transition": {"duration": 0.5, "ease": "easeInOut", "delay": {"stagger": 0.12, "from": "last"}}}
+ ],
+ "sequences": [
+  {"name": "seq-two-values", "elements": 1, "sequence": [
+   [0, {"opacity": [0, 1]}, {"duration": 0.5}],
+   [0, {"transform": [{"tx": 0, "ty": 0, "rotate": 0}, {"tx": 60, "ty": 0, "rotate": 45}]}, {"duration": 0.4}]
+  ]},
+  {"name": "seq-same-value-wildcard", "elements": 1, "sequence": [
+   [0, {"opacity": [0, 1]}, {"duration": 0.4}],
+   [0, {"opacity": 0.3}, {"duration": 0.3}]
+  ]},
+  {"name": "seq-at-absolute", "elements": 2, "sequence": [
+   [0, {"opacity": [0, 1]}, {"duration": 0.5}],
+   [1, {"opacity": [0, 1]}, {"duration": 0.5, "at": 0.2}]
+  ]},
+  {"name": "seq-at-relative", "elements": 3, "sequence": [
+   [0, {"opacity": [0, 1]}, {"duration": 0.4}],
+   [1, {"opacity": [0, 1]}, {"duration": 0.4, "at": "+0.1"}],
+   [2, {"opacity": [0, 1]}, {"duration": 0.4, "at": "-0.2"}]
+  ]},
+  {"name": "seq-at-previous", "elements": 3, "sequence": [
+   [0, {"opacity": [0, 1]}, {"duration": 0.4}],
+   [1, {"opacity": [0, 1]}, {"duration": 0.3, "at": "<"}],
+   [2, {"opacity": [0, 1]}, {"duration": 0.3, "at": "<0.15"}]
+  ]},
+  {"name": "seq-labels", "elements": 3, "sequence": [
+   "start",
+   [0, {"opacity": [0, 1]}, {"duration": 0.4}],
+   {"name": "mid", "at": 0.3},
+   [1, {"opacity": [0, 1]}, {"duration": 0.3, "at": "mid"}],
+   [2, {"opacity": [0, 1]}, {"duration": 0.3, "at": "start+0.2"}],
+   [0, {"transform": [{"tx": 0, "ty": 0, "rotate": 0}, {"tx": 40, "ty": 0, "rotate": 0}]}, {"duration": 0.3, "at": "mid-0.1"}]
+  ]},
+  {"name": "seq-stagger", "elements": 4, "sequence": [
+   [[0, 1, 2, 3], {"opacity": [0, 1]}, {"duration": 0.3, "delay": {"stagger": 0.1}}],
+   [[0, 1, 2, 3], {"transform": [{"tx": 0, "ty": 0, "rotate": 0}, {"tx": 0, "ty": 30, "rotate": 0}]}, {"duration": 0.3, "delay": {"stagger": 0.05, "from": "last"}}]
+  ]},
+  {"name": "seq-spring", "elements": 1, "sequence": [
+   [0, {"opacity": [0, 1]}, {"type": "spring", "stiffness": 300, "damping": 20}],
+   [0, {"transform": [{"tx": 0, "ty": 0, "rotate": 0}, {"tx": 60, "ty": 0, "rotate": 30}]}, {"type": "spring", "bounce": 0.4, "duration": 0.6}]
+  ]},
+  {"name": "seq-spring-single-keyframe", "elements": 1, "sequence": [
+   [0, {"opacity": [0, 0.5]}, {"duration": 0.2}],
+   [0, {"opacity": 1}, {"type": "spring", "stiffness": 200, "damping": 15}]
+  ]},
+  {"name": "seq-default-transition", "elements": 2, "options": {"defaultTransition": {"duration": 0.6, "ease": "easeIn"}}, "sequence": [
+   [0, {"opacity": [0, 1]}],
+   [1, {"opacity": [0, 1]}, {"at": "<0.2"}]
+  ]},
+  {"name": "seq-default-spring", "elements": 1, "options": {"defaultTransition": {"type": "spring", "stiffness": 250, "damping": 18}}, "sequence": [
+   [0, {"opacity": [0, 1]}],
+   [0, {"transform": [{"tx": 0, "ty": 0, "rotate": 0}, {"tx": 50, "ty": 0, "rotate": 0}]}]
+  ]},
+  {"name": "seq-ease-per-segment-times", "elements": 1, "sequence": [
+   [0, {"opacity": [0, 0.8, 0.2, 1]}, {"duration": 0.9, "ease": ["easeIn", "linear", "easeOut"], "times": [0, 0.3, 0.6, 1]}]
+  ]},
+  {"name": "seq-ease-bezier", "elements": 1, "sequence": [
+   [0, {"transform": [{"tx": 0, "ty": 0, "rotate": 0}, {"tx": 60, "ty": 0, "rotate": 45}]}, {"duration": 0.6, "ease": [0.68, -0.55, 0.27, 1.55]}]
+  ]},
+  {"name": "seq-ease-unsupported-names", "elements": 1, "sequence": [
+   [0, {"opacity": [0, 1]}, {"duration": 0.4, "ease": "anticipate"}],
+   [0, {"opacity": [1, 0.4]}, {"duration": 0.4, "ease": "backInOut"}]
+  ]},
+  {"name": "seq-repeat-reverse", "elements": 1, "sequence": [
+   [0, {"opacity": [0, 1]}, {"duration": 0.3, "repeat": 2, "repeatType": "reverse", "ease": "easeIn"}]
+  ]},
+  {"name": "seq-repeat-mirror", "elements": 1, "sequence": [
+   [0, {"opacity": [0.2, 1, 0.6]}, {"duration": 0.4, "repeat": 2, "repeatType": "mirror", "ease": ["easeIn", "easeOut"]}]
+  ]},
+  {"name": "seq-repeat-loop-delay", "elements": 1, "sequence": [
+   [0, {"opacity": [0, 1]}, {"duration": 0.3, "repeat": 1, "repeatDelay": 0.2}]
+  ]},
+  {"name": "seq-repeat-spring-reverse", "elements": 1, "sequence": [
+   [0, {"opacity": [0, 1]}, {"type": "spring", "stiffness": 400, "damping": 30, "repeat": 1, "repeatType": "reverse"}]
+  ]},
+  {"name": "seq-overlap-erase", "elements": 1, "sequence": [
+   [0, {"opacity": [0, 1]}, {"duration": 1}],
+   [0, {"opacity": [1, 0.2]}, {"duration": 0.3, "at": 0.3}]
+  ]},
+  {"name": "seq-nested", "elements": 2, "sequence": [
+   [0, {"opacity": [0, 1]}, {"duration": 0.3}],
+   {"sequence": [
+    [1, {"opacity": [0, 1]}, {"duration": 0.2}],
+    [1, {"transform": [{"tx": 0, "ty": 0, "rotate": 0}, {"tx": 30, "ty": 0, "rotate": 0}]}, {"duration": 0.2, "at": 0.1}]
+   ], "at": 0.1},
+   [0, {"transform": [{"tx": 0, "ty": 0, "rotate": 0}, {"tx": 0, "ty": 20, "rotate": 0}]}, {"duration": 0.2, "at": "<"}]
+  ]},
+  {"name": "seq-leading-wildcard-opacity", "elements": 1, "sequence": [
+   [0, {"opacity": 0.5}, {"duration": 0.4}]
+  ]},
+  {"name": "seq-leading-wildcard-transform", "elements": 1, "sequence": [
+   [0, {"transform": {"tx": 50, "ty": 0, "rotate": 30}}, {"duration": 0.4}]
+  ]},
+  {"name": "seq-sequence-repeat", "elements": 1, "options": {"repeat": 1, "repeatType": "reverse"}, "sequence": [
+   [0, {"opacity": [0, 1]}, {"duration": 0.3}],
+   [0, {"transform": [{"tx": 0, "ty": 0, "rotate": 0}, {"tx": 40, "ty": 0, "rotate": 0}]}, {"duration": 0.3}]
+  ]},
+  {"name": "seq-sequence-delay", "elements": 1, "options": {"delay": 0.25}, "sequence": [
+   [0, {"opacity": [0, 1]}, {"duration": 0.3}]
+  ]},
+  {"name": "seq-unchanged-value", "elements": 1, "sequence": [
+   [0, {"opacity": [0.5, 0.5]}, {"duration": 0.3}]
+  ]}
+ ],
+ "pixels": {
+  "times": [0, 100, 250, 400, 600, 800, 1000, 1300],
+  "cases": ["stagger-default", "stagger-grid-center", "stagger-spring", "stagger-transform", "seq-two-values", "seq-same-value-wildcard", "seq-labels", "seq-stagger", "seq-spring", "seq-ease-per-segment-times", "seq-ease-bezier", "seq-repeat-reverse", "seq-repeat-loop-delay", "seq-overlap-erase", "seq-nested", "seq-leading-wildcard-opacity"]
+ }
+}

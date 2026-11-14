@@ -39,6 +39,7 @@ cargo test --release --test measure_frame_cost -- --ignored --nocapture --test-t
 cargo run --release --example frame_pacing -- engine 100 5
 cargo test --test fidelity_sampled -- --ignored   # then tools/chromium_sampled.py
 cargo test --test motion_native              # the Motion port against Motion's recorded calls
+cargo test --test motion_sequence            # stagger() and sequences against Motion's recorded calls
 cargo test --test motion_pixels -- --ignored # then tools/motion_oracle.py pixels
 ```
 
@@ -50,4 +51,6 @@ python3 tools/chromium_sampled.py DIV_CHECKOUT CHROME_DIR
 python3 tools/chromium_capture_stability.py DIV_CHECKOUT CHROME_DIR 10
 python3 tools/motion_oracle.py values DIV_CHECKOUT CHROME_DIR
 python3 tools/motion_oracle.py pixels DIV_CHECKOUT CHROME_DIR
+python3 tools/motion_oracle.py sequences DIV_CHECKOUT CHROME_DIR
+python3 tools/motion_oracle.py sequence-pixels DIV_CHECKOUT CHROME_DIR
 ```

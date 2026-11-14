@@ -18,7 +18,9 @@ pub mod easing;
 pub mod generator;
 pub mod js;
 pub mod native;
+pub mod sequence;
 pub mod spring;
+pub mod stagger;
 
 use div::prelude::*;
 use div::typed_style::{
@@ -30,6 +32,11 @@ pub use native::{
     AcceleratedValue, Direction, EaseDefinition, NativeAnimation, NotNative, Outcome, RepeatType,
     Transition, TransitionType,
 };
+pub use sequence::{
+    create_animations_from_sequence, fill_wildcards, At, Delay, Frame, SegmentTransition,
+    SequenceAnimation, SequenceItem, SequenceOptions, Subject, Underlying, ValueKeyframes,
+};
+pub use stagger::{Stagger, StaggerFrom};
 
 /// Keyframes for one accelerated value.
 #[derive(Debug, Clone)]
@@ -170,6 +177,109 @@ pub fn animate(
     }
     .map_err(|error| Error::Div(format!("{error:?}")))?;
     Ok(Started::Animation(id))
+}
+
+impl Value {
+    /// The keyframes of one property, as Div takes them (opacity as `f32`).
+    pub fn from_frames(property: AcceleratedValue, frames: Vec<Frame>) -> Result<Self, Error> {
+        let mismatch = || Error::Div(format!("{} keyframe of the wrong kind", property.name()));
+        Ok(match property {
+            AcceleratedValue::Opacity => Self::Opacity(
+                frames
+                    .into_iter()
+                    .map(|frame| match frame {
+                        Frame::Opacity(value) => Ok(value as f32),
+                        Frame::Transform(_) => Err(mismatch()),
+                    })
+                    .collect::<Result<_, _>>()?,
+            ),
+            AcceleratedValue::Transform => Self::Transform(
+                frames
+                    .into_iter()
+                    .map(|frame| match frame {
+                        Frame::Transform(list) => Ok(list),
+                        Frame::Opacity(_) => Err(mismatch()),
+                    })
+                    .collect::<Result<_, _>>()?,
+            ),
+        })
+    }
+}
+
+/// The transition each of `count` elements gets from
+/// `animate(elements, keyframes, { ...transition, delay: stagger })`:
+/// `animateSubject` calls the stagger with each element's index.
+pub fn staggered_transitions(
+    transition: &Transition,
+    stagger: &Stagger,
+    count: usize,
+) -> Vec<Transition> {
+    (0..count)
+        .map(|index| Transition {
+            delay: Some(stagger.delay(index, count)),
+            ..transition.clone()
+        })
+        .collect()
+}
+
+/// Motion's `animate(elements, { [value]: keyframes }, transition)` with a
+/// `stagger()` delay.
+pub fn animate_staggered(
+    elements: &[Element],
+    value: &Value,
+    transition: &Transition,
+    stagger: &Stagger,
+) -> Result<Vec<Started>, Error> {
+    elements
+        .iter()
+        .zip(staggered_transitions(transition, stagger, elements.len()))
+        .map(|(element, transition)| animate(element, value, &transition))
+        .collect()
+}
+
+/// What Motion's keyframe resolver reads from `element` for a leading
+/// wildcard of `property`.
+fn underlying(element: &Element, property: AcceleratedValue) -> Result<Underlying, Error> {
+    let style = element
+        .computed_style()
+        .map_err(|error| Error::Div(format!("{error:?}")))?;
+    match property {
+        AcceleratedValue::Opacity => Ok(Underlying::Opacity(f64::from(style.opacity))),
+        AcceleratedValue::Transform
+            if style.transform == div::typed_style::Transform2D::IDENTITY
+                && style.transform_matrix.is_none() =>
+        {
+            Ok(Underlying::NoTransform)
+        }
+        // Motion would read the computed matrix string; not ported.
+        AcceleratedValue::Transform => Err(Error::Div(
+            "a leading transform wildcard over an existing transform".into(),
+        )),
+    }
+}
+
+/// Motion's `animate(sequence, options)` over `elements` (segment subjects
+/// are indices into it): one native animation per element and value.
+pub fn animate_sequence(
+    elements: &[Element],
+    sequence: &[SequenceItem],
+    options: &SequenceOptions,
+) -> Result<Vec<Started>, Error> {
+    create_animations_from_sequence(sequence, options)
+        .into_iter()
+        .map(|animation| {
+            let element = elements
+                .get(animation.element)
+                .ok_or_else(|| Error::Div(format!("no element {}", animation.element)))?;
+            let underlying = match animation.frames.first() {
+                Some(None) => underlying(element, animation.property)?,
+                _ => Underlying::Opacity(f64::NAN),
+            };
+            let frames = fill_wildcards(&animation.frames, &underlying).map_err(Error::Div)?;
+            let value = Value::from_frames(animation.property, frames)?;
+            animate(element, &value, &animation.transition)
+        })
+        .collect()
 }
 
 /// Property-indexed keyframes as WAAPI builds them: offsets from `times`
