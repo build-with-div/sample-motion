@@ -15,7 +15,7 @@ with Motion's own formulas and operation order, then makes it on Div.
 | `easing.rs` | the named easings, Motion's cubic-bezier solver, `mapEasingToNativeEasing`, `generateLinearEasing` |
 | `stagger.rs` | `stagger()` (motion-dom `utils/stagger.mjs`) |
 | `sequence.rs` | `createAnimationsFromSequence` with `calcNextTime`, `calcLabelTime`, `addKeyframes`, `compareByTime`, `defaultOffset`/`fillOffset`, and the keyframe resolver's wildcard fill (framer-motion 14.14.0 `animation/sequence/`) |
-| `js.rs` | the JavaScript number semantics the outputs depend on: `Math.round`, `Number` to string, `parseFloat`, V8's `Math.hypot` |
+| `js.rs` | the JavaScript number semantics the outputs depend on: `Math.round`, `Number` to string, `parseFloat`, V8's `Math.hypot`, and V8's `Math.exp` (used by the react-spring port) |
 | `mod.rs` | `resolve` (the call Motion makes), `animate`, `animate_staggered` and `animate_sequence` (making the calls on Div) |
 
 ## What Div provides and what is scaffolded
