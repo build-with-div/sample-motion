@@ -6,3 +6,4 @@
 //! `docs/framework-gaps.md` for the temporary scaffolds.
 
 pub mod motion;
+pub mod react_spring;

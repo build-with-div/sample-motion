@@ -1,0 +1,183 @@
+{
+ "comment": "react-spring 10.1.2 SpringValue scenarios. Each case creates its springs (new SpringValue(props)) at time 0, then runs animation frames at k * 1000 / fps ms for k = 1..frames. Actions at frame k run after that frame's callbacks (frame 0: before the first frame), at the frame's time. A config given as a string is that preset object (config.gentle, ...), shared within a case. tools/react_spring_oracle.py values records spring.get(), spring.velocity and isAnimating after each frame's actions.",
+ "cases": [
+  {"name": "default", "springs": [{"target": "x", "from": 0}], "frames": 90,
+   "actions": [{"frame": 0, "spring": 0, "start": {"to": 100}}]},
+  {"name": "preset-gentle", "springs": [{"target": "x", "from": 0}], "frames": 90,
+   "actions": [{"frame": 0, "spring": 0, "start": {"to": 100, "config": "gentle"}}]},
+  {"name": "preset-wobbly", "springs": [{"target": "x", "from": 0}], "frames": 120,
+   "actions": [{"frame": 0, "spring": 0, "start": {"to": 100, "config": "wobbly"}}]},
+  {"name": "preset-stiff", "springs": [{"target": "x", "from": 100}], "frames": 60,
+   "actions": [{"frame": 0, "spring": 0, "start": {"to": 0, "config": "stiff"}}]},
+  {"name": "preset-slow", "springs": [{"target": "x", "from": 0}], "frames": 120,
+   "actions": [{"frame": 0, "spring": 0, "start": {"to": 100, "config": "slow"}}]},
+  {"name": "preset-molasses", "springs": [{"target": "x", "from": 0}], "frames": 150,
+   "actions": [{"frame": 0, "spring": 0, "start": {"to": 100, "config": "molasses"}}]},
+  {"name": "tension-friction-mass", "springs": [{"target": "x", "from": 0}], "frames": 150,
+   "actions": [{"frame": 0, "spring": 0, "start": {"to": 80, "config": {"tension": 300, "friction": 10, "mass": 2}}}]},
+  {"name": "frequency-damping", "springs": [{"target": "x", "from": 0}], "frames": 120,
+   "actions": [{"frame": 0, "spring": 0, "start": {"to": 100, "config": {"frequency": 0.6, "damping": 0.35}}}]},
+  {"name": "frequency-overrides-tension", "springs": [{"target": "x", "from": 0}], "frames": 120,
+   "actions": [
+    {"frame": 0, "spring": 0, "start": {"to": 100, "config": {"frequency": 0.4, "damping": 1}}},
+    {"frame": 30, "spring": 0, "start": {"to": 20, "config": {"tension": 400}}}
+   ]},
+  {"name": "clamp", "springs": [{"target": "x", "from": 0}], "frames": 60,
+   "actions": [{"frame": 0, "spring": 0, "start": {"to": 100, "config": {"tension": 180, "friction": 12, "clamp": true}}}]},
+  {"name": "bounce", "springs": [{"target": "x", "from": 0}], "frames": 120,
+   "actions": [{"frame": 0, "spring": 0, "start": {"to": 100, "config": {"tension": 250, "friction": 8, "bounce": 0.6}}}]},
+  {"name": "precision-rest-velocity", "springs": [{"target": "x", "from": 0}], "frames": 120,
+   "actions": [{"frame": 0, "spring": 0, "start": {"to": 100, "config": {"precision": 0.5, "restVelocity": 0.05}}}]},
+  {"name": "initial-velocity", "springs": [{"target": "x", "from": 0}], "frames": 120,
+   "actions": [{"frame": 0, "spring": 0, "start": {"to": 50, "config": {"velocity": 2}}}]},
+  {"name": "velocity-same-target", "springs": [{"target": "x", "from": 40}], "frames": 120,
+   "actions": [{"frame": 0, "spring": 0, "start": {"to": 40, "config": {"velocity": -1.5, "tension": 200, "friction": 10}}}]},
+  {"name": "round", "springs": [{"target": "x", "from": 0}], "frames": 90,
+   "actions": [{"frame": 0, "spring": 0, "start": {"to": 100, "config": {"round": 5}}}]},
+  {"name": "tension-zero", "springs": [{"target": "x", "from": 0}], "frames": 10,
+   "actions": [{"frame": 0, "spring": 0, "start": {"to": 100, "config": {"tension": 0}}}]},
+  {"name": "opacity-default", "springs": [{"target": "opacity", "from": 0}], "frames": 90,
+   "actions": [{"frame": 0, "spring": 0, "start": {"to": 1}}]},
+  {"name": "duration-linear", "springs": [{"target": "x", "from": 0}], "frames": 45,
+   "actions": [{"frame": 0, "spring": 0, "start": {"to": 100, "config": {"duration": 500}}}]},
+  {"name": "duration-easings", "springs": [{"target": "x", "from": 0}, {"target": "opacity", "from": 1}], "frames": 50,
+   "actions": [
+    {"frame": 0, "spring": 0, "start": {"to": 100, "config": {"duration": 600, "easing": "easeInOutCubic"}}},
+    {"frame": 0, "spring": 1, "start": {"to": 0.2, "config": {"duration": 400, "easing": "easeOutQuart"}}}
+   ]},
+  {"name": "duration-ease-back", "springs": [{"target": "x", "from": 20}], "frames": 50,
+   "actions": [{"frame": 0, "spring": 0, "start": {"to": 80, "config": {"duration": 700, "easing": "easeOutBack"}}}]},
+  {"name": "duration-each-easing", "springs": [{"target": "x", "from": 0}], "frames": 250,
+   "actions": [
+    {"frame": 0, "spring": 0, "start": {"to": 100, "config": {"duration": 300, "easing": "easeInQuad"}}},
+    {"frame": 20, "spring": 0, "start": {"to": 0, "config": {"easing": "easeOutQuad"}}},
+    {"frame": 40, "spring": 0, "start": {"to": 100, "config": {"easing": "easeInOutQuad"}}},
+    {"frame": 60, "spring": 0, "start": {"to": 0, "config": {"easing": "easeInCubic"}}},
+    {"frame": 80, "spring": 0, "start": {"to": 100, "config": {"easing": "easeOutCubic"}}},
+    {"frame": 100, "spring": 0, "start": {"to": 0, "config": {"easing": "easeInQuart"}}},
+    {"frame": 120, "spring": 0, "start": {"to": 100, "config": {"easing": "easeInBack"}}},
+    {"frame": 140, "spring": 0, "start": {"to": 0, "config": {"easing": "linear"}}}
+   ]},
+  {"name": "duration-progress", "springs": [{"target": "x", "from": 0}], "frames": 40,
+   "actions": [{"frame": 0, "spring": 0, "start": {"to": 100, "config": {"duration": 500, "progress": 0.25}}}]},
+  {"name": "duration-change-midway", "springs": [{"target": "x", "from": 0}], "frames": 60,
+   "actions": [
+    {"frame": 0, "spring": 0, "start": {"to": 100, "config": {"duration": 800}}},
+    {"frame": 12, "spring": 0, "start": {"to": 100, "config": {"duration": 400}}}
+   ]},
+  {"name": "decay", "springs": [{"target": "x", "from": 0}], "frames": 150,
+   "actions": [{"frame": 0, "spring": 0, "start": {"config": {"decay": true, "velocity": 0.3}}}]},
+  {"name": "decay-rate", "springs": [{"target": "x", "from": 100}], "frames": 150,
+   "actions": [{"frame": 0, "spring": 0, "start": {"config": {"decay": 0.995, "velocity": -0.4}}}]},
+  {"name": "delay", "springs": [{"target": "x", "from": 0}], "frames": 90,
+   "actions": [{"frame": 0, "spring": 0, "start": {"to": 100, "delay": 250}}]},
+  {"name": "delay-then-stop", "springs": [{"target": "x", "from": 0}], "frames": 40,
+   "actions": [
+    {"frame": 0, "spring": 0, "start": {"to": 100, "delay": 300}},
+    {"frame": 10, "spring": 0, "stop": true}
+   ]},
+  {"name": "immediate", "springs": [{"target": "x", "from": 0}], "frames": 30,
+   "actions": [
+    {"frame": 0, "spring": 0, "start": {"to": 100, "immediate": true}},
+    {"frame": 5, "spring": 0, "start": {"to": 30}}
+   ]},
+  {"name": "reset-from", "springs": [{"target": "x", "from": 0}], "frames": 90,
+   "actions": [
+    {"frame": 0, "spring": 0, "start": {"to": 100}},
+    {"frame": 15, "spring": 0, "start": {"from": 10, "to": 60}}
+   ]},
+  {"name": "reset-explicit", "springs": [{"target": "x", "from": 0}], "frames": 90,
+   "actions": [
+    {"frame": 0, "spring": 0, "start": {"to": 100}},
+    {"frame": 15, "spring": 0, "start": {"to": 100, "reset": true}}
+   ]},
+  {"name": "interrupt-reverse", "springs": [{"target": "x", "from": 0}], "frames": 120,
+   "actions": [
+    {"frame": 0, "spring": 0, "start": {"to": 100}},
+    {"frame": 12, "spring": 0, "start": {"to": 0}}
+   ]},
+  {"name": "interrupt-retarget-often", "springs": [{"target": "x", "from": 0}], "frames": 150,
+   "actions": [
+    {"frame": 0, "spring": 0, "start": {"to": 100, "config": "wobbly"}},
+    {"frame": 6, "spring": 0, "start": {"to": 20}},
+    {"frame": 14, "spring": 0, "start": {"to": 90}},
+    {"frame": 17, "spring": 0, "start": {"to": 50, "config": "stiff"}},
+    {"frame": 40, "spring": 0, "start": {"to": 0, "config": {"mass": 3}}}
+   ]},
+  {"name": "interrupt-duration-to-spring", "springs": [{"target": "x", "from": 0}], "frames": 120,
+   "actions": [
+    {"frame": 0, "spring": 0, "start": {"to": 100, "config": {"duration": 600}}},
+    {"frame": 15, "spring": 0, "start": {"to": 0, "config": {"tension": 170, "friction": 26}}}
+   ]},
+  {"name": "interrupt-spring-to-duration", "springs": [{"target": "x", "from": 0}], "frames": 90,
+   "actions": [
+    {"frame": 0, "spring": 0, "start": {"to": 100}},
+    {"frame": 10, "spring": 0, "start": {"to": 0, "config": {"duration": 400}}}
+   ]},
+  {"name": "same-target-while-running", "springs": [{"target": "x", "from": 0}], "frames": 90,
+   "actions": [
+    {"frame": 0, "spring": 0, "start": {"to": 100}},
+    {"frame": 10, "spring": 0, "start": {"to": 100, "config": {"friction": 10}}}
+   ]},
+  {"name": "stop-and-restart", "springs": [{"target": "x", "from": 0}], "frames": 120,
+   "actions": [
+    {"frame": 0, "spring": 0, "start": {"to": 100}},
+    {"frame": 12, "spring": 0, "stop": true},
+    {"frame": 30, "spring": 0, "start": {"to": 0}}
+   ]},
+  {"name": "restart-as-loop-stops", "springs": [{"target": "x", "from": 0}], "frames": 120,
+   "actions": [
+    {"frame": 0, "spring": 0, "start": {"to": 100}},
+    {"frame": 12, "spring": 0, "stop": true},
+    {"frame": 14, "spring": 0, "start": {"to": 0}}
+   ]},
+  {"name": "default-config", "springs": [{"target": "x", "from": 0, "config": {"tension": 300, "friction": 15}}], "frames": 120,
+   "actions": [
+    {"frame": 0, "spring": 0, "start": {"to": 100}},
+    {"frame": 30, "spring": 0, "start": {"to": 0, "config": {"mass": 3}}},
+    {"frame": 70, "spring": 0, "start": {"to": 60, "config": {"duration": 300}}}
+   ]},
+  {"name": "two-springs", "springs": [{"target": "x", "from": 0}, {"target": "opacity", "from": 1}], "frames": 120,
+   "actions": [
+    {"frame": 0, "spring": 0, "start": {"to": 100, "config": "wobbly"}},
+    {"frame": 8, "spring": 1, "start": {"to": 0.3, "config": "slow"}},
+    {"frame": 20, "spring": 0, "start": {"to": 40}}
+   ]},
+  {"name": "chain", "springs": [{"target": "x", "from": 0}], "frames": 180,
+   "actions": [{"frame": 0, "spring": 0, "start": {"to": [{"to": 100}, {"to": 30, "config": {"tension": 300, "friction": 20}}, {"to": 70}]}}]},
+  {"name": "chain-inherits-config", "springs": [{"target": "x", "from": 0}], "frames": 150,
+   "actions": [{"frame": 0, "spring": 0, "start": {"to": [{"to": 100}, {"to": 0}, {"to": 50, "config": {"duration": 300}}], "config": "stiff"}}]},
+  {"name": "chain-step-delay", "springs": [{"target": "x", "from": 0}], "frames": 150,
+   "actions": [{"frame": 0, "spring": 0, "start": {"to": [{"to": 80, "config": {"duration": 200}}, {"to": 20, "delay": 150}, {"to": 60, "delay": 100, "config": {"duration": 250}}]}}]},
+  {"name": "chain-with-delay", "springs": [{"target": "x", "from": 0}], "frames": 120,
+   "actions": [{"frame": 0, "spring": 0, "start": {"to": [{"to": 60}, {"to": 10}], "delay": 200, "config": "stiff"}}]},
+  {"name": "chain-stopped", "springs": [{"target": "x", "from": 0}], "frames": 120,
+   "actions": [
+    {"frame": 0, "spring": 0, "start": {"to": [{"to": 100}, {"to": 0}, {"to": 50}]}},
+    {"frame": 50, "spring": 0, "stop": true}
+   ]},
+  {"name": "chain-replaced", "springs": [{"target": "x", "from": 0}], "frames": 150,
+   "actions": [
+    {"frame": 0, "spring": 0, "start": {"to": [{"to": 100}, {"to": 0}, {"to": 50}]}},
+    {"frame": 20, "spring": 0, "start": {"to": [{"to": 20}, {"to": 90}]}}
+   ]},
+  {"name": "chain-noop-step", "springs": [{"target": "x", "from": 0}], "frames": 120,
+   "actions": [{"frame": 0, "spring": 0, "start": {"to": [{"to": 0}, {"to": 0}, {"to": 60}]}}]},
+  {"name": "fps-30", "fps": 30, "springs": [{"target": "x", "from": 0}], "frames": 45,
+   "actions": [
+    {"frame": 0, "spring": 0, "start": {"to": 100, "config": "wobbly"}},
+    {"frame": 10, "spring": 0, "start": {"to": 30}}
+   ]},
+  {"name": "fps-10-clamped-dt", "fps": 10, "springs": [{"target": "x", "from": 0}], "frames": 30,
+   "actions": [{"frame": 0, "spring": 0, "start": {"to": 100}}]},
+  {"name": "fps-144", "fps": 144, "springs": [{"target": "x", "from": 0}], "frames": 200,
+   "actions": [
+    {"frame": 0, "spring": 0, "start": {"to": 100, "config": {"duration": 500, "easing": "easeInOutQuad"}}},
+    {"frame": 50, "spring": 0, "start": {"to": 0, "config": {"tension": 210, "friction": 20}}}
+   ]}
+ ],
+ "pixels": {
+  "frames": [0, 1, 3, 6, 10, 15, 20, 30, 45, 60, 90],
+  "cases": ["default", "preset-wobbly", "bounce", "opacity-default", "duration-easings", "decay", "delay", "interrupt-reverse", "interrupt-retarget-often", "two-springs", "chain", "chain-step-delay", "restart-as-loop-stops"]
+ }
+}

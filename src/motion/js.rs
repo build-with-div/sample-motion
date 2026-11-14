@@ -120,6 +120,96 @@ pub fn hypot(values: &[f64]) -> f64 {
     sum.sqrt() * max
 }
 
+/// `Math.exp` as V8 computes it: fdlibm's `__ieee754_exp` with V8's
+/// special case for `exp(1)` (`src/base/ieee754.cc`). It can differ from
+/// the platform's `exp` in the last bit.
+pub fn math_exp(x: f64) -> f64 {
+    // fdlibm's constants, by their bit patterns as its comments give them.
+    const HALF: [f64; 2] = [0.5, -0.5];
+    const O_THRESHOLD: f64 = f64::from_bits(0x4086_2E42_FEFA_39EF);
+    const U_THRESHOLD: f64 = f64::from_bits(0xC087_4910_D52D_3051);
+    const LN2_HI: [f64; 2] = [
+        f64::from_bits(0x3FE6_2E42_FEE0_0000),
+        f64::from_bits(0xBFE6_2E42_FEE0_0000),
+    ];
+    const LN2_LO: [f64; 2] = [
+        f64::from_bits(0x3DEA_39EF_3579_3C76),
+        f64::from_bits(0xBDEA_39EF_3579_3C76),
+    ];
+    const INV_LN2: f64 = f64::from_bits(0x3FF7_1547_652B_82FE);
+    const P1: f64 = f64::from_bits(0x3FC5_5555_5555_553E);
+    const P2: f64 = f64::from_bits(0xBF66_C16C_16BE_BD93);
+    const P3: f64 = f64::from_bits(0x3F11_566A_AF25_DE2C);
+    const P4: f64 = f64::from_bits(0xBEBB_BD41_C5D2_6BF1);
+    const P5: f64 = f64::from_bits(0x3E66_3769_72BE_A4D0);
+    const HUGE: f64 = 1.0e300;
+    // 2^-1000
+    const TWO_M1000: f64 = f64::from_bits(0x0170_0000_0000_0000);
+
+    let high = (x.to_bits() >> 32) as u32;
+    let sign = (high >> 31) as usize;
+    let high = high & 0x7fff_ffff;
+    // Non-finite and out-of-range arguments.
+    if high >= 0x4086_2E42 {
+        if high >= 0x7ff0_0000 {
+            if ((high & 0xf_ffff) | x.to_bits() as u32) != 0 {
+                return x + x;
+            }
+            return if sign == 0 { x } else { 0.0 };
+        }
+        if x > O_THRESHOLD {
+            return HUGE * HUGE;
+        }
+        if x < U_THRESHOLD {
+            return TWO_M1000 * TWO_M1000;
+        }
+    }
+    // Argument reduction.
+    let mut x = x;
+    let (mut hi, mut lo, k): (f64, f64, i32) = (0.0, 0.0, 0);
+    let k = if high > 0x3fd6_2e42 {
+        let k = if high < 0x3FF0_A2B2 {
+            // V8 returns E for exp(1), where fdlibm is one bit off.
+            if x == 1.0 {
+                return std::f64::consts::E;
+            }
+            hi = x - LN2_HI[sign];
+            lo = LN2_LO[sign];
+            1 - 2 * sign as i32
+        } else {
+            let k = (INV_LN2 * x + HALF[sign]) as i32;
+            let t = k as f64;
+            hi = x - t * LN2_HI[0];
+            lo = t * LN2_LO[0];
+            k
+        };
+        x = hi - lo;
+        k
+    } else if high < 0x3e30_0000 {
+        if HUGE + x > 1.0 {
+            return 1.0 + x;
+        }
+        k
+    } else {
+        k
+    };
+    // x is now in the primary range.
+    let t = x * x;
+    let c = x - t * (P1 + t * (P2 + t * (P3 + t * (P4 + t * P5))));
+    if k == 0 {
+        return 1.0 - ((x * c) / (c - 2.0) - x);
+    }
+    let y = 1.0 - ((lo - (x * c) / (2.0 - c)) - hi);
+    if k >= -1021 {
+        if k == 1024 {
+            return y * 2.0 * f64::from_bits(0x7fe0_0000_0000_0000);
+        }
+        y * f64::from_bits(((0x3ff + k) as u64) << 52)
+    } else {
+        y * f64::from_bits(((0x3ff + k + 1000) as u64) << 52) * TWO_M1000
+    }
+}
+
 /// `parseFloat(text)`: the longest decimal literal at the start of the
 /// string (after whitespace), or NaN.
 pub fn parse_float(text: &str) -> f64 {
@@ -182,6 +272,30 @@ mod tests {
         assert_eq!(math_round(-1.5), -1.0);
         assert_eq!(math_round(2.4999), 2.0);
         assert_eq!(math_round(-0.4).to_bits(), (-0.0_f64).to_bits());
+    }
+
+    #[test]
+    fn math_exp_matches_v8() {
+        // `Math.exp(x)` printed by Node 22.18 (V8).
+        let cases: [(f64, f64); 8] = [
+            (1.0, std::f64::consts::E), // printed as 2.718281828459045
+            (-1.0, 0.36787944117144233),
+            (0.5, 1.6487212707001282),
+            (-0.0014, 0.9986009795428267),
+            (3.7, 40.4473043600674),
+            (-20.0, 2.061153622438558e-9),
+            (700.0, 1.0142320547350045e304),
+            (-740.0, 4.2e-322),
+        ];
+        for (x, expected) in cases {
+            assert_eq!(math_exp(x).to_bits(), expected.to_bits(), "exp({x})");
+        }
+        assert_eq!(math_exp(0.0), 1.0);
+        assert_eq!(math_exp(f64::NEG_INFINITY), 0.0);
+        assert_eq!(math_exp(f64::INFINITY), f64::INFINITY);
+        assert_eq!(math_exp(710.0), f64::INFINITY);
+        assert_eq!(math_exp(-746.0), 0.0);
+        assert!(math_exp(f64::NAN).is_nan());
     }
 
     #[test]
