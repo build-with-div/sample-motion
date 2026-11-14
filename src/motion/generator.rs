@@ -35,13 +35,17 @@ pub struct GeneratorEasing {
     pub duration_ms: f64,
 }
 
-/// `createGeneratorEasing(options, 100, spring)` followed by the
-/// milliseconds conversion in `spring.applyToOptions`.
+/// `createGeneratorEasing(options, scale, spring)`: a progress easing and a
+/// duration in seconds.
 ///
 /// `keyframe_delta` is `keyframes[last] - keyframes[0]` (NaN for keyframes
-/// with units), used only to scale an initial velocity.
-pub fn spring_easing(options: &SpringOptions, keyframe_delta: f64) -> GeneratorEasing {
-    let scale = 100.0;
+/// with units, or when the options carry no keyframes), used only to scale
+/// an initial velocity.
+pub fn create_generator_easing(
+    options: &SpringOptions,
+    scale: f64,
+    keyframe_delta: f64,
+) -> (Rc<dyn Fn(f64) -> f64>, f64) {
     let mut scaled = options.clone();
     // `v && delta ? (v * scale) / delta : v`
     scaled.velocity = match options.velocity {
@@ -52,9 +56,18 @@ pub fn spring_easing(options: &SpringOptions, keyframe_delta: f64) -> GeneratorE
     };
     let generator = Spring::new(&scaled, 0.0, scale);
     let duration = calc_generator_duration(|t| generator.next(t)).min(MAX_GENERATOR_DURATION);
-    let duration_seconds = milliseconds_to_seconds(duration);
+    (
+        Rc::new(move |progress| generator.next(duration * progress).0 / scale),
+        milliseconds_to_seconds(duration),
+    )
+}
+
+/// `createGeneratorEasing(options, 100, spring)` followed by the
+/// milliseconds conversion in `spring.applyToOptions`.
+pub fn spring_easing(options: &SpringOptions, keyframe_delta: f64) -> GeneratorEasing {
+    let (ease, duration_seconds) = create_generator_easing(options, 100.0, keyframe_delta);
     GeneratorEasing {
-        ease: Rc::new(move |progress| generator.next(duration * progress).0 / scale),
+        ease,
         duration_ms: seconds_to_milliseconds(duration_seconds),
     }
 }

@@ -55,6 +55,37 @@ impl Ease {
         })
     }
 
+    /// motion-utils `easingDefinitionToFunction`: the easing as a function.
+    pub fn function(&self) -> Rc<dyn Fn(f64) -> f64> {
+        match self {
+            Self::Linear => Rc::new(|p| p),
+            Self::EaseIn => Rc::new(cubic_bezier(0.42, 0.0, 1.0, 1.0)),
+            Self::EaseOut => Rc::new(cubic_bezier(0.0, 0.0, 0.58, 1.0)),
+            Self::EaseInOut => Rc::new(cubic_bezier(0.42, 0.0, 0.58, 1.0)),
+            Self::CircIn => Rc::new(circ_in),
+            Self::CircOut => Rc::new(reverse(circ_in)),
+            Self::CircInOut => Rc::new(circ_in_out),
+            Self::BackIn => Rc::new(back_in),
+            Self::BackOut => Rc::new(back_out),
+            Self::BackInOut => Rc::new(back_in_out),
+            Self::Anticipate => Rc::new(anticipate),
+            Self::Bezier([x1, y1, x2, y2]) => Rc::new(cubic_bezier(*x1, *y1, *x2, *y2)),
+            Self::Function(function) => Rc::clone(function),
+        }
+    }
+
+    /// motion-utils `reverseEasing` for a function easing; Motion leaves
+    /// names and Bézier arrays as they are (`typeof e === "function"`).
+    pub fn reversed_if_function(&self) -> Self {
+        match self {
+            Self::Function(function) => {
+                let function = Rc::clone(function);
+                Self::Function(Rc::new(move |p| 1.0 - function(1.0 - p)))
+            }
+            other => other.clone(),
+        }
+    }
+
     /// `replaceStringEasing`: the three named easings WAAPI has no
     /// equivalent for become their JavaScript functions, which are later
     /// exported as `linear()`.

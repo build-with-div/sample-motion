@@ -122,6 +122,23 @@ headless mode, `--disable-gpu`):
   frame times. Motion uses WAAPI and rAF together, so this combination is
   measured with the first port (M3) before any package result is reported.
 
+**Refinement (M3b, 13 November 2026).** The paused seek above was measured
+on one animation with no delay. With several staggered animations it is
+not byte-stable. One case is an animation that was already running on the
+compositor and is then seeked to a time whose value matches the main
+thread's previous value, for example inside its delay. Its box kept the
+opacity the compositor held at the real-time moment of the pause:
+
+- **Example:** 246 in one run, 241 in another, against 255 expected.
+- **Waiting two frames after the seek:** this reduced the differences, but
+  runs still disagreed.
+- **`--disable-threaded-animation`:** every frame matched Div's in two runs
+  out of two.
+
+The Motion frame comparisons (`tools/motion_oracle.py`) therefore capture
+on the main thread and wait two frames after each seek. The measurements
+are in [motion-port.md](motion-port.md#capture-method).
+
 What this does not test: the pump replaces Chromium's own frame
 scheduling. Comparisons made this way check what is rendered at given frame
 times, not when Chromium produces frames or in what order it runs rAF

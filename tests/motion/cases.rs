@@ -39,7 +39,7 @@ pub fn transform(frame: &Json) -> TransformList {
     ])
 }
 
-fn value(name: &str, keyframes: &Json) -> Value {
+pub fn value(name: &str, keyframes: &Json) -> Value {
     let frames = keyframes.as_array().unwrap();
     match name {
         "opacity" => Value::Opacity(frames.iter().map(|v| v.as_f64().unwrap() as f32).collect()),
@@ -55,7 +55,7 @@ pub fn number(value: &Json) -> f64 {
     }
 }
 
-fn ease(value: &Json) -> Ease {
+pub fn ease(value: &Json) -> Ease {
     match value {
         Json::String(name) => match name.as_str() {
             "linear" => Ease::Linear,
@@ -79,7 +79,7 @@ fn ease(value: &Json) -> Ease {
     }
 }
 
-fn transition(value: &Json) -> Transition {
+pub fn transition(value: &Json) -> Transition {
     let get = |key: &str| value.get(key).map(number);
     Transition {
         kind: value.get("type").map(|kind| match kind.as_str().unwrap() {
