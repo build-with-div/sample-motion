@@ -1,4 +1,8 @@
-//! Animation and motion on Div: probes now, a motion gallery later.
+//! Animation and motion on Div: ports of the motion npm packages, built on
+//! Div's public platform surface, plus the probes and measurements that
+//! report which web platform features Div still needs.
 //!
-//! See `docs/design.md` for what Div supports and `docs/rfc-motion.md` for
-//! the proposed motion APIs.
+//! See `docs/design.md` for the package → platform feature map and
+//! `docs/framework-gaps.md` for the temporary scaffolds.
+
+pub mod motion;
