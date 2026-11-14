@@ -18,6 +18,8 @@ phase 1. The package ports are landing one milestone at a time; see
   draft for the Div tracks.
 - [docs/framework-gaps.md](docs/framework-gaps.md): temporary scaffolds and
   the platform features that replace them.
+- [docs/motion-port.md](docs/motion-port.md): the Motion `animate()` port
+  and its comparison with Motion in Chromium.
 - [docs/q13-chromium-capture.md](docs/q13-chromium-capture.md): which ways
   of driving time in pinned Chromium give byte-stable captures.
 
@@ -36,6 +38,8 @@ cargo test                                   # the API probe
 cargo test --release --test measure_frame_cost -- --ignored --nocapture --test-threads 1
 cargo run --release --example frame_pacing -- engine 100 5
 cargo test --test fidelity_sampled -- --ignored   # then tools/chromium_sampled.py
+cargo test --test motion_native              # the Motion port against Motion's recorded calls
+cargo test --test motion_pixels -- --ignored # then tools/motion_oracle.py pixels
 ```
 
 Run the Chromium tools in Linux or WSL, against a build-with-div/div
@@ -44,4 +48,6 @@ checkout and its pinned Chromium:
 ```sh
 python3 tools/chromium_sampled.py DIV_CHECKOUT CHROME_DIR
 python3 tools/chromium_capture_stability.py DIV_CHECKOUT CHROME_DIR 10
+python3 tools/motion_oracle.py values DIV_CHECKOUT CHROME_DIR
+python3 tools/motion_oracle.py pixels DIV_CHECKOUT CHROME_DIR
 ```

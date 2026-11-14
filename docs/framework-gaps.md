@@ -65,3 +65,6 @@ apply to these entries:
 
 | # | Scaffold | Replaced by | Package | Status |
 | --- | --- | --- | --- | --- |
+| 1 | `src/motion/mod.rs` `animate`: `div-gap: A3 Web Animations API`. Motion's `element.animate()` call goes to `Element::animate` per property; the `AnimationId` stands in for the `Animation`. Motion's `onfinish` (commit the final style, cancel) does not run, so the filling animation stays and renders the same final value. A single keyframe (implicit from-value) is not expressible and returns an error. | A3 Web Animations surface (Q12) | Motion 14.14.0 | in use; 52 of 52 calls equal Motion's, 90 of 90 frames equal Chromium's ([motion-port.md](motion-port.md)) |
+
+Not scaffolded: values Motion runs on its own frame loop (inertia, `repeatDelay`, `repeatType: "mirror"`, `damping: 0`, non-accelerated values). The port returns `NotNative::MainThread` for them; they wait for R1.
