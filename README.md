@@ -2,10 +2,11 @@
 
 A dogfood sample for animation and motion on
 [Div](https://github.com/build-with-div/div), a native Rust UI framework.
-It ports the npm packages professionals use for motion (Motion, GSAP,
-react-spring, AutoAnimate, tailwindcss-animate with Radix `Presence`, and
-lottie-web) to Div's public API. Along the way it reports which web
-platform features Div must implement, matching Chromium, to power them.
+It ports the npm packages professionals use for motion (Motion,
+react-spring, anime.js in place of GSAP, AutoAnimate, tailwindcss-animate
+with Radix `Presence`, and lottie-web) to Div's public API. Along the way
+it reports which web platform features Div must implement, matching
+Chromium, to power them.
 
 Status: phase 2. The repository holds the probes and measurements of
 phase 1. The package ports are landing one milestone at a time; see
@@ -22,6 +23,9 @@ phase 1. The package ports are landing one milestone at a time; see
   and its comparison with Motion in Chromium.
 - [docs/react-spring-port.md](docs/react-spring-port.md): the react-spring
   `SpringValue` port and its comparison with react-spring in Chromium.
+- [docs/anime-port.md](docs/anime-port.md): the anime.js port (tweens,
+  timelines, eases, stagger), its comparison with anime.js in Chromium,
+  and why GSAP is not ported (its licence).
 - [docs/q13-chromium-capture.md](docs/q13-chromium-capture.md): which ways
   of driving time in pinned Chromium give byte-stable captures.
 
@@ -46,6 +50,8 @@ cargo test --test motion_pixels -- --ignored # then tools/motion_oracle.py pixel
 cargo test --test react_spring_values        # the react-spring port against react-spring's recorded values
 cargo test --test react_spring_pixels -- --ignored # then tools/react_spring_oracle.py pixels
 cargo run --example react_spring_toggle      # a spring on the desktop (R1 scaffold)
+cargo test --test anime_values               # the anime.js port against anime.js's recorded style writes
+cargo test --test anime_pixels -- --ignored  # then tools/anime_oracle.py pixels
 ```
 
 Run the Chromium tools in Linux or WSL, against a build-with-div/div
@@ -60,4 +66,6 @@ python3 tools/motion_oracle.py sequences DIV_CHECKOUT CHROME_DIR
 python3 tools/motion_oracle.py sequence-pixels DIV_CHECKOUT CHROME_DIR
 python3 tools/react_spring_oracle.py values DIV_CHECKOUT CHROME_DIR
 python3 tools/react_spring_oracle.py pixels DIV_CHECKOUT CHROME_DIR
+python3 tools/anime_oracle.py values DIV_CHECKOUT CHROME_DIR
+python3 tools/anime_oracle.py pixels DIV_CHECKOUT CHROME_DIR
 ```
