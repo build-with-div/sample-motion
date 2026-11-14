@@ -7,8 +7,9 @@ react-spring, AutoAnimate, tailwindcss-animate with Radix `Presence`, and
 lottie-web) to Div's public API. Along the way it reports which web
 platform features Div must implement, matching Chromium, to power them.
 
-Status: phase 1, investigation. The repository holds probes and
-measurements; the ports come next.
+Status: phase 2. The repository holds the probes and measurements of
+phase 1. The package ports are landing one milestone at a time; see
+[design.md § Phase 2](docs/design.md#phase-2-porting-the-packages).
 
 - [docs/design.md](docs/design.md): packages → platform features → what Div
   has and is missing, with owners, sizes, measurements and the fidelity
@@ -17,6 +18,8 @@ measurements; the ports come next.
   draft for the Div tracks.
 - [docs/framework-gaps.md](docs/framework-gaps.md): temporary scaffolds and
   the platform features that replace them.
+- [docs/q13-chromium-capture.md](docs/q13-chromium-capture.md): which ways
+  of driving time in pinned Chromium give byte-stable captures.
 
 ## Build and test
 
@@ -33,4 +36,12 @@ cargo test                                   # the API probe
 cargo test --release --test measure_frame_cost -- --ignored --nocapture --test-threads 1
 cargo run --release --example frame_pacing -- engine 100 5
 cargo test --test fidelity_sampled -- --ignored   # then tools/chromium_sampled.py
+```
+
+Run the Chromium tools in Linux or WSL, against a build-with-div/div
+checkout and its pinned Chromium:
+
+```sh
+python3 tools/chromium_sampled.py DIV_CHECKOUT CHROME_DIR
+python3 tools/chromium_capture_stability.py DIV_CHECKOUT CHROME_DIR 10
 ```
