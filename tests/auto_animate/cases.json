@@ -1,0 +1,42 @@
+{
+ "comment": "Scenarios shared by tools/auto_animate_oracle.py and tests/auto_animate_values.rs. Frame k is at k * 1000 / 60 ms. Calls: auto [config], append k, insert k before, remove k, disable, enable, destroy. Item k is created on first use. The padded page sets none of the properties AutoAnimate clears on a removed item; on Div the list page's item styles are inline, as Div has no style sheets (F8), so clearing them removes them. A case with a gap differs on purpose.",
+ "pages": {
+  "list": {"parent": "margin: 5px; width: 100px", "item": "height: 20px; margin-bottom: 4px"},
+  "row": {"parent": "margin: 5px; display: flex", "item": "flex-shrink: 0; width: 24px; height: 30px; margin-right: 6px"},
+  "padded": {"parent": "margin: 5px; width: 100px", "item": "padding-top: 10px; padding-bottom: 10px; border-bottom: 4px solid white"},
+  "boxed": {"parent": "margin: 5px; width: 100px; padding: 4px; border: 2px solid black", "item": "height: 14px; padding: 2px; border: 1px solid black; margin-bottom: 3px"}
+ },
+ "colors": ["#d33", "#3a3", "#33d", "#da3", "#a3d", "#3ad"],
+ "cases": [
+  {"name": "list-append", "page": "list", "items": 3, "frames": 60, "calls": {"0": [["auto"]], "30": [["append", 3]]}},
+  {"name": "list-prepend", "page": "list", "items": 3, "frames": 60, "calls": {"0": [["auto"]], "30": [["insert", 3, 0]]}},
+  {"name": "list-remove-middle", "page": "list", "items": 3, "frames": 60, "calls": {"0": [["auto"]], "30": [["remove", 1]]}},
+  {"name": "list-remove-last", "page": "list", "items": 3, "frames": 60, "calls": {"0": [["auto"]], "30": [["remove", 2]]}},
+  {"name": "list-remove-only", "page": "list", "items": 1, "frames": 50, "calls": {"0": [["auto"]], "30": [["remove", 0]]}},
+  {"name": "list-move", "page": "list", "items": 3, "frames": 60, "calls": {"0": [["auto"]], "30": [["insert", 2, 0]]}},
+  {"name": "list-before-ready", "page": "list", "items": 3, "frames": 40, "calls": {"0": [["auto"]], "5": [["append", 3]]}},
+  {"name": "list-interrupt-add-remove", "page": "list", "items": 3, "frames": 70, "calls": {"0": [["auto"]], "30": [["append", 3]], "38": [["remove", 3]]}},
+  {"name": "list-interrupt-move", "page": "list", "items": 3, "frames": 70, "calls": {"0": [["auto"]], "30": [["insert", 2, 0]], "36": [["insert", 0, 2]]}},
+  {"name": "gap-f8-remove-readd", "page": "list", "gap": "F8", "items": 3, "frames": 90, "calls": {"0": [["auto"]], "30": [["remove", 1]], "60": [["insert", 1, 2]]}},
+  {"name": "list-readd-during-exit", "page": "list", "items": 3, "frames": 70, "calls": {"0": [["auto"]], "30": [["remove", 1]], "35": [["insert", 1, 2]]}},
+  {"name": "padded-remove-readd", "page": "padded", "items": 3, "frames": 90, "calls": {"0": [["auto"]], "30": [["remove", 1]], "60": [["insert", 1, 2]]}},
+  {"name": "list-two-adds", "page": "list", "items": 3, "frames": 65, "calls": {"0": [["auto"]], "30": [["append", 3]], "31": [["append", 4]]}},
+  {"name": "list-batch", "page": "list", "items": 4, "frames": 60, "calls": {"0": [["auto"]], "30": [["remove", 0], ["append", 4], ["insert", 3, 1]]}},
+  {"name": "list-options", "page": "list", "items": 3, "frames": 60, "calls": {"0": [["auto", {"duration": 100, "easing": "linear"}]], "30": [["append", 3]], "40": [["remove", 0]]}},
+  {"name": "list-disable", "page": "list", "items": 3, "frames": 80, "calls": {"0": [["auto"]], "20": [["disable"]], "30": [["append", 3]], "40": [["enable"]], "50": [["remove", 0]]}},
+  {"name": "list-disable-during-exit", "page": "list", "items": 3, "frames": 60, "calls": {"0": [["auto"]], "30": [["remove", 1]], "34": [["disable"]]}},
+  {"name": "list-destroy", "page": "list", "items": 3, "frames": 50, "calls": {"0": [["auto"]], "20": [["destroy"]], "30": [["append", 3]]}},
+  {"name": "list-reduced-motion", "page": "list", "items": 3, "frames": 50, "reducedMotion": true, "calls": {"0": [["auto"]], "30": [["append", 3]]}},
+  {"name": "list-long-poll", "page": "list", "items": 3, "frames": 180, "calls": {"0": [["auto"]], "30": [["append", 3]], "150": [["remove", 0]]}},
+  {"name": "row-append", "page": "row", "items": 4, "frames": 60, "calls": {"0": [["auto"]], "30": [["append", 4]]}},
+  {"name": "row-remove-middle", "page": "row", "items": 4, "frames": 60, "calls": {"0": [["auto"]], "30": [["remove", 1]]}},
+  {"name": "row-move", "page": "row", "items": 4, "frames": 60, "calls": {"0": [["auto"]], "30": [["insert", 3, 0]]}},
+  {"name": "boxed-append", "page": "boxed", "items": 3, "frames": 60, "calls": {"0": [["auto"]], "30": [["append", 3]]}},
+  {"name": "boxed-remove-first", "page": "boxed", "items": 3, "frames": 60, "calls": {"0": [["auto"]], "30": [["remove", 0]]}},
+  {"name": "gap-f9-reduced-motion-disrespect", "page": "list", "items": 3, "frames": 60, "reducedMotion": true, "gap": "F9", "calls": {"0": [["auto", {"disrespectUserMotionPreference": true}]], "30": [["append", 3]]}}
+ ],
+ "pixels": {
+  "frames": [30, 33, 36, 40, 45, 52],
+  "cases": ["list-append", "list-prepend", "list-remove-middle", "list-move", "list-options", "row-remove-middle", "boxed-append", "boxed-remove-first"]
+ }
+}
