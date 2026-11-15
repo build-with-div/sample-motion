@@ -26,6 +26,9 @@ phase 1. The package ports are landing one milestone at a time; see
 - [docs/anime-port.md](docs/anime-port.md): the anime.js port (tweens,
   timelines, eases, stagger), its comparison with anime.js in Chromium,
   and why GSAP is not ported (its licence).
+- [docs/auto-animate-port.md](docs/auto-animate-port.md): the AutoAnimate
+  port (enter, exit and FLIP moves of list children) and its comparison
+  with AutoAnimate in Chromium.
 - [docs/q13-chromium-capture.md](docs/q13-chromium-capture.md): which ways
   of driving time in pinned Chromium give byte-stable captures.
 
@@ -52,6 +55,8 @@ cargo test --test react_spring_pixels -- --ignored # then tools/react_spring_ora
 cargo run --example react_spring_toggle      # a spring on the desktop (R1 scaffold)
 cargo test --test anime_values               # the anime.js port against anime.js's recorded style writes
 cargo test --test anime_pixels -- --ignored  # then tools/anime_oracle.py pixels
+cargo test --test auto_animate_values        # the AutoAnimate port against AutoAnimate's recorded effects
+cargo test --test auto_animate_pixels -- --ignored # then tools/auto_animate_oracle.py pixels
 ```
 
 Run the Chromium tools in Linux or WSL, against a build-with-div/div
@@ -68,4 +73,6 @@ python3 tools/react_spring_oracle.py values DIV_CHECKOUT CHROME_DIR
 python3 tools/react_spring_oracle.py pixels DIV_CHECKOUT CHROME_DIR
 python3 tools/anime_oracle.py values DIV_CHECKOUT CHROME_DIR
 python3 tools/anime_oracle.py pixels DIV_CHECKOUT CHROME_DIR
+python3 tools/auto_animate_oracle.py values DIV_CHECKOUT CHROME_DIR
+python3 tools/auto_animate_oracle.py pixels DIV_CHECKOUT CHROME_DIR
 ```
