@@ -5,5 +5,6 @@
 //! See `docs/design.md` for the package → platform feature map and
 //! `docs/framework-gaps.md` for the temporary scaffolds.
 
+pub mod anime;
 pub mod motion;
 pub mod react_spring;

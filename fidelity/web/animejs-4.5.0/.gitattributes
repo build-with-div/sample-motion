@@ -1,0 +1,5 @@
+# Keep the vendored files byte-identical to the npm tarball, also in
+# Windows checkouts (no line-end conversion).
+anime.esm.js -text
+LICENSE.md -text
+package.json -text
