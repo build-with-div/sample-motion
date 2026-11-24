@@ -16,8 +16,11 @@ It is never the proposed solution. Each one:
   happened, the scaffold used, and how bad it is;
 - is deleted when Div ships the feature.
 
-Pinned Div: `92ea25a0` (Phase 1 was measured at `565db46a`; the only change
-between them is Div #30, view children, which touches no animation code).
+Pinned Div: `b7e4f6a0` since 23 November 2026 (div#141, which drops
+`filter-blur` and other names that are not CSS properties). M3 to M6 were
+measured at `92ea25a0`. Phase 1 was measured at `565db46a`; the only change
+between those two is Div #30, view children, which touches no animation
+code.
 
 ## Plan IDs
 
