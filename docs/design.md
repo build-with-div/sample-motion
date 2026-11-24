@@ -577,7 +577,8 @@ the harness's exact RGBA comparison:
 ## Phase 2: porting the packages
 
 Started 13 November 2026, after the Tier 0 platform work was scheduled in
-Div (the consolidated platform plan, §2). Phase 2 pins Div `92ea25a0`.
+Div (the consolidated platform plan, §2). Phase 2 pinned Div `92ea25a0`
+for M1 to M6; the pin moved to `b7e4f6a0` on 23 November 2026 (div#141).
 Ports live in this repository and keep each package's semantics and
 formulas. They are built only on Div's public platform surface.
 

@@ -16,8 +16,11 @@ It is never the proposed solution. Each one:
   happened, the scaffold used, and how bad it is;
 - is deleted when Div ships the feature.
 
-Pinned Div: `92ea25a0` (Phase 1 was measured at `565db46a`; the only change
-between them is Div #30, view children, which touches no animation code).
+Pinned Div: `b7e4f6a0` since 23 November 2026 (div#141, which drops
+`filter-blur` and other names that are not CSS properties). M3 to M6 were
+measured at `92ea25a0`. Phase 1 was measured at `565db46a`; the only change
+between those two is Div #30, view children, which touches no animation
+code.
 
 ## Plan IDs
 
@@ -85,7 +88,7 @@ apply to these entries:
 
 Not scaffolded: values Motion runs on its own frame loop (inertia, `repeatDelay`, `repeatType: "mirror"`, `damping: 0`, non-accelerated values). The port returns `NotNative::MainThread` for them; they wait for R1.
 
-Not portable yet: Motion's native `filter` and `clipPath`. Div has only the `filter-blur`, `filter-grayscale` and `clip-path-inset` longhands, not CSS `filter` function lists or `clip-path` shapes. This is A4 (F6), engine, M each. No scaffold: a private filter model would reimplement the platform feature.
+Not portable yet: Motion's native `filter` and `clipPath`. Div has only the typed `FilterBlur`, `FilterGrayscale` and `ClipPathInset` properties, not CSS `filter` function lists or `clip-path` shapes. Since div#141, `filter-blur` and `filter-grayscale` are not CSS names in Div (they never were CSS properties); `tests/probe_animation_api.rs` asserts that `filter-blur` does not resolve. This is A4 (F6), engine, M each. No scaffold: a private filter model would reimplement the platform feature.
 
 Not portable yet: anime.js's transforms other than `translateX/Y`, `rotate`
 and `scale*` with Div's parser. This is F20, engine, M. `DivHost` reports

@@ -149,10 +149,13 @@ fn gap_no_css_animation_transition_or_motion_properties() {
     ] {
         assert_eq!(StyleProperty::from_css_name(name), None, "{name}");
     }
-    // What exists: transform, opacity and per-function filters.
-    for name in ["transform", "opacity", "filter-blur", "transform-origin"] {
+    // What exists: transform and opacity.
+    for name in ["transform", "opacity", "transform-origin"] {
         assert!(StyleProperty::from_css_name(name).is_some(), "{name}");
     }
+    // `filter-blur` is not a CSS property, and Div resolves no CSS name to
+    // it (div#141). This makes no claim about CSS `filter: blur()`.
+    assert_eq!(StyleProperty::from_css_name("filter-blur"), None);
 }
 
 #[test]
