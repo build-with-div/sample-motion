@@ -45,8 +45,10 @@ Gaps (plan IDs as in [framework-gaps.md](framework-gaps.md)):
 Not ported:
 
 - **`filter` and `clipPath`.** Motion also runs these natively, but Div has
-  only the `filter-blur`, `filter-grayscale` and `clip-path-inset` longhands.
-  It has no CSS `filter` function list and no `clip-path` shapes to animate.
+  only the typed `FilterBlur`, `FilterGrayscale` and `ClipPathInset`
+  properties. Since div#141, `filter-blur` and `filter-grayscale` are not
+  CSS names in Div; they never were CSS properties. Div has no CSS `filter`
+  function list and no `clip-path` shapes to animate.
   This is the existing A4 gap (F6: "`filter` lists ... `clip-path`",
   engine, M each).
 - **`stagger({ from: "random" })`.** It draws from `Math.random`, so no run
